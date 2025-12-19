@@ -1,0 +1,28 @@
+# Build directories
+build/
+dist/
+
+assets/videos
+
+# Python venv
+.venv/
+
+# Temporal files for dezog
+.tmp/
+
+# Produced by CSpect
+cspect_win.dat
+
+# Currently edited version of some files
+*~
+
+# Object and debug files
+*.o
+*.d
+*.lis
+*.sym
+
+# Python related files
+*.pyc
+
+.DS_Store

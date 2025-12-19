@@ -1,0 +1,42 @@
+{
+    "triggerTaskOnSave.tasks": {
+        "build": [
+            "*.asm",
+            "*.c",
+            "*.h",
+            "*.inc",
+            // "Makefile"
+        ],
+    },
+    "files.autoSave": "onFocusChange",
+    "files.autoSaveDelay": 1000,
+    "editor.formatOnSave": true,
+    "files.exclude": {
+        "build/**": true,
+        "src/**/*.lis": true,
+        "src/**/*.d": true,
+        "src/**/*.o": true,
+    },
+    "files.associations": {
+        "*.rasi": "css",
+        "*.bbmodel": "json",
+        "*.sublime-snippet": "xml",
+        "*.hbs": "html",
+        "*.ejs": "html",
+        "*.emu": "html",
+        "lesskey": "lesskey",
+        "*.Xresources": "xdefaults",
+        "i3/config": "i3",
+        "i3/*.conf": "i3",
+        "polybar/config": "ini",
+        "polybar/*.conf": "ini",
+        "*.h": "c",
+        "__locale": "c",
+        "ios": "c"
+    },
+    "makefile.configureOnOpen": false,
+    "pylint.args": [
+        "--extension-pkg-whitelist=cv2",
+        "--generated-members=cv2.*",
+    ],
+}

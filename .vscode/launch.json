@@ -1,0 +1,77 @@
+{
+    "configurations": [
+        {
+            "type": "dezog",
+            "request": "launch",
+            "name": "DeZog (CSpect)",
+            "remoteType": "cspect",
+            "rootFolder": "${workspaceFolder}",
+            "z88dkv2": [
+                {
+                    "path": "src/**/*.lis",
+                    "srcDirs": [
+                        "src/",
+                        "src/arkos",
+                        "src/game/",
+                        "src/init",
+                        "src/menu/",
+                        "src/physics/",
+                    ],
+                    "mapFile": "build/next-point.map",
+                    "excludeFiles": []
+                }
+            ],
+            "startAutomatically": true,
+            "history": {
+                "reverseDebugInstructionCount": 10000,
+                "codeCoverageEnabled": false
+            },
+            "commandsAfterLaunch": [],
+            "disassemblerArgs": {
+                "numberOfLines": 20
+            },
+            "smartDisassemblerArgs": {
+                "lowerCase": false
+            },
+            "topOfStack": "__register_sp",
+            "load": "build/next-point.nex",
+            "smallValuesMaximum": 513,
+            "tmpDir": ".tmp"
+        },
+        {
+            "type": "dezog",
+            "request": "launch",
+            "name": "Dezog (ZXNext)",
+            "remoteType": "zxnext",
+            "zxnext": {
+                "serial": "/dev/tty.usbserial-10"
+            },
+            "z88dkv2": [
+                {
+                    "path": "src/**/*.lis",
+                    "srcDirs": [
+                        "src/",
+                        "src/arkos",
+                        "src/game/",
+                        "src/init",
+                        "src/menu/",
+                        "src/physics/",
+                    ],
+                    "mapFile": "build/next-point.map",
+                    "excludeFiles": []
+                }
+            ],
+            "history": {
+                "reverseDebugInstructionCount": 1000000,
+                "spotCount": 10
+            },
+            "startAutomatically": false,
+            "commandsAfterLaunch": [],
+            "rootFolder": "${workspaceFolder}",
+            "topOfStack": "__register_sp",
+            "load": "build/next-point.nex",
+            "smallValuesMaximum": 513,
+            "tmpDir": ".tmp"
+        },
+    ]
+}
