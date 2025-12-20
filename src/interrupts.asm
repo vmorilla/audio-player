@@ -54,7 +54,7 @@ _interrupt_vector_table:
     defw _default_interrupt_handler ; 1: UART0 RX
     defw _default_interrupt_handler ; 2: UART1 RX
     defw _sound_interrupt_handler   ; 3: CTC channel 0
-    defw _sound_loader_interrupt_handler ; 4: CTC channel 1
+    defw _default_interrupt_handler ; 4: CTC channel 1
     defw _default_interrupt_handler ; 5: CTC channel 2
     defw _default_interrupt_handler ; 6: CTC channel 3
     defw _default_interrupt_handler ; 7: CTC channel 4

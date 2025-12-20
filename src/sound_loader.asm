@@ -3,61 +3,18 @@ INCLUDE "macros.inc"
 
 SECTION code_user
 
-PUBLIC _sound_loader_handler, _play_sound_file, _sound_loader_interrupt_handler
-EXTERN _sample_pointer, _empty_buffers_mask
+PUBLIC _play_sound_file, lsound_loader_read_buffer
+EXTERN _sample_pointer
 EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
-_sound_loader_interrupt_handler:
-    ei
-    call _sound_loader_handler
-    reti
 
-
-_sound_loader_handler:
-    push af
+lsound_loader_read_buffer:   
     ld a, (sound_file_handler)
     cp -1
-    jr z, _sound_loader_handler_end ; No file open
-    ld a, (_empty_buffers_mask)
-    and a
-    jr z, _sound_loader_handler_end ; No empty buffers
-    push ix
-    push bc
-    push de
-    push hl
-    bit 3, a
-    jr z, load_buffer_1
-load_buffer_0:
-    ld ix, _SOUND_SAMPLES_BUFFER    
-    call sound_loader_read_buffer
-    ld hl, _empty_buffers_mask
-    res 3, (hl)
-    jr _sound_loader_handler_end1
-load_buffer_1:
-    ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
-    call sound_loader_read_buffer
-    ld hl, _empty_buffers_mask
-    res 4, (hl) 
-_sound_loader_handler_end1:
-    pop hl
-    pop de
-    pop bc
-    pop ix
-_sound_loader_handler_end:
-    pop af
-    ret
-
-; IX: following address to read data into
-sound_loader_read_buffer:   
-    READ_NEXTREG(REG_MMU6)
-    push af
-    NEXTREG REG_MMU6, _SOUND_SAMPLES_BUFFER >> 16
-    ld a, (sound_file_handler)
+    ret z
     ld bc, _SOUND_SAMPLES_BUFFER_SIZE
     rst __ESX_RST_SYS
     defb __ESX_F_READ
-    pop af
-    NEXTREG REG_MMU6, a
     ld de, hl
     ld hl, _SOUND_SAMPLES_BUFFER_SIZE
     sbc hl, bc
@@ -74,8 +31,10 @@ sound_loader_read_buffer:
     inc de
     ldir
     ; The buffer has not been completely filled (file reached EOF)
-read_buffer_close_handler:
     jr close_handler
+
+
+
 
 close_handler:
     ld a, (sound_file_handler)
