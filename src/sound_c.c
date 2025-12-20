@@ -7,10 +7,10 @@
 
 static bool sound_on = false;
 
-int8_t play_sound_file(const char *filename)
+int8_t play_sound_file(const char *filename, bool loop)
 {
     stop_sound();
-    int8_t result = load_sound_file(filename);
+    int8_t result = load_sound_file(filename, loop);
     if (result != -1)
     {
         start_sound();

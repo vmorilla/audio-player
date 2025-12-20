@@ -52,12 +52,14 @@ _sound_interrupt_handler:
     res DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
     ld (_sample_pointer), hl
     push ix
+    push de
     ld ix, _SOUND_SAMPLES_BUFFER
     bit BUFFER_H_OVERFLOW_BIT, h    ; If this bit is set, the first buffer has been consumed
     jr nz, read_buffer
     ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
 read_buffer:
     call sound_loader_read_buffer
+    pop de
     pop ix
     jr end_interrupt
 

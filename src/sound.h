@@ -3,8 +3,8 @@
 
 #include <stdint.h>
 
-int8_t play_sound_file(const char *filename);
-int8_t load_sound_file(const char *filename) __z88dk_fastcall;
+int8_t play_sound_file(const char *filename, bool loop);
+int8_t load_sound_file(const char *filename, bool loop);
 
 void start_sound(void);
 void stop_sound(void);

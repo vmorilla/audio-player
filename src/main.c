@@ -28,12 +28,12 @@ int main(void)
         {
         case 'i':
             printf("Playing intro...\n");
-            play_sound_file("music/intro.raw");
+            play_sound_file("music/intro.raw", false);
             break;
 
         case 'l':
             printf("Playing loop...\n");
-            play_sound_file("music/loop.raw");
+            play_sound_file("music/loop.raw", true);
             break;
 
         case 's':

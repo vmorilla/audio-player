@@ -3,7 +3,7 @@ INCLUDE "macros.inc"
 
 SECTION code_user
 
-PUBLIC _load_sound_file, sound_loader_read_buffer
+PUBLIC _load_sound_file, sound_loader_read_buffer, _loop_mode
 EXTERN _sample_pointer, _default_interrupt_handler, _interrupt_vector_table
 EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
@@ -37,8 +37,29 @@ load_chunk:
     sbc hl, bc
     ld a, l
     or h
-    ret z ; buffer complete
+    ret z ; buffer complete. We did not reach EOF
     ; The buffer has not been completely filled (file reached EOF)
+    ld a, (_loop_mode)
+    and a
+    jr z, fill_buffer
+    // Loop mode...
+    push de ; save current buffer position
+    push hl ; save remaining bytes to fill
+    ld a, (sound_file_handler)
+    ld ixl, 0   ; esx_seek_set
+    ld bc, 0   ; bcde = offset 0
+    ld de, 0
+    rst __ESX_RST_SYS
+    defb __ESX_F_SEEK
+    ; Now read again to fill the rest of the buffer
+    ld a, (sound_file_handler)
+    pop bc ; restore bytes to fill
+    pop ix ; restore buffer position
+    rst __ESX_RST_SYS
+    defb __ESX_F_READ
+    ret  
+
+fill_buffer:
     ; We fill the rest of the buffer with 128 (silence)
     ld bc, hl
     ld hl, de
@@ -61,17 +82,19 @@ close_handler:
     ld (countdown_to_stop), a
     ret
 
+
+; int8_t load_sound_file(const char *filename, bool loop);
 _load_sound_file:
-    ; Stops CTC channel 0
-    ; ld bc, __IO_CTC0
-    ; ld a, 0b00000001
-    ; out (c), a
-    push hl ; saves the filename pointer
     ; Closes previous file if any
     ld a, (sound_file_handler)
     cp -1
     call nz, close_handler ; Close previous file if any
-    pop ix  ; IX points to the null terminated filename string
+    ld ix, 2
+    add ix, sp
+    ld a, (ix + 2) ; loop parameter
+    ld (_loop_mode), a
+    ld hl, (ix + 0) ; filename parameter
+    ld ix, hl
     ld a, '*'
     ld b, __ESXDOS_MODE_READ
     rst __ESX_RST_SYS
@@ -110,3 +133,5 @@ sound_file_handler:
     defb -1
 countdown_to_stop:
     defb 10 ; number of buffers with no file handler before stopping sound playback
+_loop_mode:
+    defb 0 ; 0 = no loop, 1 = loop sound file
