@@ -5,7 +5,7 @@
 
 #define SOUND_SAMPLES_BUFFER_SIZE 256
 
-void play_sound_file(const char *filename) __z88dk_fastcall;
+int8_t play_sound_file(const char *filename) __z88dk_fastcall;
 
 // bit 0: buffer 0 empty, bit 1: buffer 1 empty
 extern volatile uint8_t empty_buffers_mask;

@@ -17,7 +17,7 @@
                         "src/menu/",
                         "src/physics/",
                     ],
-                    "mapFile": "build/next-point.map",
+                    "mapFile": "build/audio-player.map",
                     "excludeFiles": []
                 }
             ],
@@ -34,7 +34,7 @@
                 "lowerCase": false
             },
             "topOfStack": "__register_sp",
-            "load": "build/next-point.nex",
+            "load": "dist/audio-player.nex",
             "smallValuesMaximum": 513,
             "tmpDir": ".tmp"
         },
@@ -57,7 +57,7 @@
                         "src/menu/",
                         "src/physics/",
                     ],
-                    "mapFile": "build/next-point.map",
+                    "mapFile": "build/audio-player.map",
                     "excludeFiles": []
                 }
             ],
@@ -69,7 +69,7 @@
             "commandsAfterLaunch": [],
             "rootFolder": "${workspaceFolder}",
             "topOfStack": "__register_sp",
-            "load": "build/next-point.nex",
+            "load": "dist/audio-player.nex",
             "smallValuesMaximum": 513,
             "tmpDir": ".tmp"
         },

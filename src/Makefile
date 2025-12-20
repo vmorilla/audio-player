@@ -6,7 +6,7 @@ LD := zcc
 # Build settings
 TARGET      := +zxn -subtype=nex
 VERBOSITY   := -vn
-CRT         := 31
+CRT         := 1
 CLIB        := sdcc_iy
 COMPILER    := sdcc
 
@@ -20,7 +20,7 @@ CFLAGS  := $(TARGET) $(VERBOSITY) --list -c --c-code-in-asm -compiler=$(COMPILER
 ASFLAGS := $(TARGET) $(VERBOSITY) -c --list -m $(DEBUG_FLAGS) $(C_OPT_FLAGS) 
 
 LDFLAGS= $(TARGET) $(VERBOSITY) --list -m -clib=$(CLIB) -startup=$(CRT) -pragma-include:zpragma.inc
-LIBS = -lmath32
+LIBS = #-lmath32
 
 # Source files and derived objects
 SRCS_C   := $(wildcard *.c) $(wildcard **/*.c)
@@ -36,7 +36,7 @@ OUTPUT = $(OUTPUT_DIR)/audio-player.nex
 # General rules
 all: deps $(OUTPUT) check_length
 
-$(OUTPUT): $(OBJS)
+$(OUTPUT): $(OBJS) | dirs
 	$(LD) $(LDFLAGS) $(LIBS) -o $(basename $@).bin $^ -create-app
 
 %.o: %.c

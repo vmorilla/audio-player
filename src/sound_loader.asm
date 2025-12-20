@@ -102,9 +102,7 @@ _play_sound_file:
     ret
 file_opened:
     ld (sound_file_handler), a
-    call _sound_loader_handler
     pop ix
-    ld a, (sound_file_handler)
     ld l,a
     ret
 
