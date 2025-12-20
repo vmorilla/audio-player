@@ -9,15 +9,16 @@ PUBLIC _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
 EXTERN lsound_loader_read_buffer
 
-defc _SOUND_SAMPLES_BUFFER_SIZE = 2048
-; C000 Buffer 1
-; C800 Buffer 2
-; D000 End of buffers
+defc BUFFER_SIZE_BITS = 11 ; 
+defc BUFFER_SIZE = 2 ** BUFFER_SIZE_BITS
+defc BUFFER_H_MASK = (BUFFER_SIZE - 1) >> 8
+defc BUFFER_H_OVERFLOW_BIT = BUFFER_SIZE_BITS - 8
+defc DOUBLE_BUFFER_H_OVERFLOW_BIT = BUFFER_H_OVERFLOW_BIT + 1
+defc SAMPLES_BUFFER = 0x50C000
 
-; Bit for buffer 1 = 3
-; Bit for buffer 2 = 4
-
-defc _SOUND_SAMPLES_BUFFER = 0x50C000
+; Exported symbols
+defc _SOUND_SAMPLES_BUFFER_SIZE = BUFFER_SIZE
+defc _SOUND_SAMPLES_BUFFER = SAMPLES_BUFFER
 
 _sound_interrupt_handler:
     push af
@@ -44,21 +45,16 @@ _sound_interrupt_handler:
     and a
     jr nz, no_end_of_buffer
     ld a, h
-    and 0x07
+    and BUFFER_H_MASK
     jr nz, no_end_of_buffer
-    res 4, h
+    res DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
     ld (_sample_pointer), hl
-    bit 3, h
     push ix
-    jr z, buffer1_empty
-    ; Buffer 0 empty
     ld ix, _SOUND_SAMPLES_BUFFER
-    call lsound_loader_read_buffer
-    pop ix
-    jr end_interrupt
-buffer1_empty:
-    ; Buffer 1 empty
+    bit BUFFER_H_OVERFLOW_BIT, h    ; If this bit is set, the first buffer has been consumed
+    jr nz, read_buffer
     ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
+read_buffer:
     call lsound_loader_read_buffer
     pop ix
     jr end_interrupt
@@ -79,6 +75,6 @@ end_interrupt:
 SECTION data_user
 
 _sample_pointer:
-    defw _SOUND_SAMPLES_BUFFER & 0xFFFF
-
-
+    defw SAMPLES_BUFFER & 0xFFFF
+_end_sample_pointer:
+    defw (SAMPLES_BUFFER + 2 * BUFFER_SIZE) & 0xFFFF
