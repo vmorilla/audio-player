@@ -7,7 +7,7 @@ PUBLIC _sound_interrupt_handler
 PUBLIC _sample_pointer
 PUBLIC _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
-EXTERN lsound_loader_read_buffer
+EXTERN sound_loader_read_buffer
 
 defc BUFFER_SIZE_BITS = 11 ; 
 defc BUFFER_SIZE = 2 ** BUFFER_SIZE_BITS
@@ -31,15 +31,12 @@ _sound_interrupt_handler:
 
     ld a, _SOUND_SAMPLES_BUFFER >> 16
     nextreg REG_MMU6, a
-
     ld hl, (_sample_pointer)
     ld a, (hl)
-    ld bc, IO_DAC_L0
-    out (c), a
+    nextreg 0x2c, a
     inc hl
     ld a, (hl)
-    set 6, c    ; IO_DAC_L0  + 0x40 = IO_DAC_R0
-    out (c), a
+    nextreg 0x2e, a
     inc hl
     ld a, l
     and a
@@ -55,7 +52,7 @@ _sound_interrupt_handler:
     jr nz, read_buffer
     ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
 read_buffer:
-    call lsound_loader_read_buffer
+    call sound_loader_read_buffer
     pop ix
     jr end_interrupt
 

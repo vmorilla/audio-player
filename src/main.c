@@ -11,41 +11,34 @@
 #include "interrupts.h"
 #include "sound.h"
 
+#define FREQ 16 // in kHz
+
 int main(void)
 {
     zx_cls(PAPER_WHITE);
     hardware_interrupt_mode();
-    set_sound_samples_interrupt_rate(32); // 32 kHz
-    // if (play_sound_file("music/intro.raw") == -1)
-    // {
-    //     printf("Error loading sound file!");
-    // }
-    // else
-    // {
-    //     add_interrupt_handler(INT_CTC_CHANNEL_0, sound_interrupt_handler);
-    // }
+    set_sound_samples_interrupt_rate(FREQ);
 
     while (1)
     {
-        char key = in_inkey();
-        // Avoid processing repeated keys
-        if (key == 'i')
+        in_wait_key();
+        switch (in_inkey())
         {
+        case 'i':
             printf("Playing intro...\n");
             play_sound_file("music/intro.raw");
-            in_wait_nokey();
-        }
-        if (key == 'l')
-        {
+            break;
+
+        case 'l':
             printf("Playing loop...\n");
             play_sound_file("music/loop.raw");
-            in_wait_nokey();
-        }
-        if (key == 's')
-        {
+            break;
+
+        case 's':
             printf("Stopping sound...\n");
             stop_sound();
-            in_wait_nokey();
+            break;
         }
+        in_wait_nokey();
     }
 }

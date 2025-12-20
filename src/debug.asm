@@ -1,7 +1,6 @@
 SECTION code_user
 
-PUBLIC __trace, __assert, __tile_trace_line, __tile_trace_int, __tile_trace_short, __tile_trace_char
-
+PUBLIC __trace, __assert
 ; --------------------------------------------------------------
 ; void _trace(const char *message, ...);
 ; after ix = sp + 4
@@ -45,62 +44,3 @@ __assert:
 exit_assert:
     pop ix
     ret
-
-
-
-; --------------------------------------------------------------
-; trace function on tile map screen
-; void _tile_trace_line(uint8_t line) __z88dk_fastcall;
-; A: line number
-; --------------------------------------------------------------
-__tile_trace_line:
-    ld e, a
-    ld d, 80
-    mul de
-    ld hl, 0x4000
-    add hl, de
-    ld (cursor), hl
-    ret
-
-; --------------------------------------------------------------
-; trace function on tile map screen
-; void _title_trace_number(uint16_t number) __z88dk_fastcall;
-; HL: number
-; --------------------------------------------------------------
-
-__tile_trace_int:
-    ld a, h
-    call __tile_trace_short
-    ld a, l
-    jp __tile_trace_short
-
-__tile_trace_short:
-    ld c, a
-    swapnib
-    call __tile_trace_digit
-    ld a, c
-    jp __tile_trace_digit
-
-__tile_trace_digit:
-    and $0f
-    add a, '0'
-    cp '9' + 1
-    jr c, __tile_trace_char
-    add a, 'A' - '9' - 1
-
-; --------------------------------------------------------------
-; draw a character at cursor position and increase the cursor
-__tile_trace_char:
-    ld de, (cursor)
-    ld (de), a
-    inc de
-    inc de
-    ld (cursor), de
-    ret
-
-
-
-SECTION data_user
-
-cursor:
-    defw 0x4000

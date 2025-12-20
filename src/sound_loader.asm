@@ -3,14 +3,17 @@ INCLUDE "macros.inc"
 
 SECTION code_user
 
-PUBLIC _play_sound_file, lsound_loader_read_buffer
-EXTERN _remove_interrupt_handler, _add_interrupt_handler, _
-EXTERN _sample_pointer, _sound_interrupt_handler
+PUBLIC _load_sound_file, sound_loader_read_buffer
+EXTERN _sample_pointer
 EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
+
+// TODO: add to general library in z88dk
+defc __IO_CTC0 = 0x183B // CTC channel 0 port
+
 
 defc INT_CTC_CHANNEL_0 = 3
 
-lsound_loader_read_buffer:   
+sound_loader_read_buffer:   
     ld a, (sound_file_handler)
     cp -1
     ret z
@@ -43,11 +46,13 @@ close_handler:
     ld (sound_file_handler), a
     ret
 
-_play_sound_file:
+_load_sound_file:
+    ; Stops CTC channel 0
+    ; ld bc, __IO_CTC0
+    ; ld a, 0b00000001
+    ; out (c), a
     push hl ; saves the filename pointer
-    // First, we disable the interrupt handler
-    ld hl, INT_CTC_CHANNEL_0
-    call _remove_interrupt_handler
+    ; Closes previous file if any
     ld a, (sound_file_handler)
     cp -1
     call nz, close_handler ; Close previous file if any
@@ -71,23 +76,15 @@ file_exists:
     nextreg REG_MMU6, a
     ; Fills both buffers
     ld ix, _SOUND_SAMPLES_BUFFER
-    call lsound_loader_read_buffer
+    call sound_loader_read_buffer
     ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
-    call lsound_loader_read_buffer
+    call sound_loader_read_buffer
     ; sets the sample pointer to the start of the first buffer
     ld hl, _SOUND_SAMPLES_BUFFER
     ld (_sample_pointer), hl
     ; Restores the currengt page in MMU 6
     pop af
     nextreg REG_MMU6, a
-    ; Enables interrupt handler
-    push _sound_interrupt_handler
-    push INT_CTC_CHANNEL_0 << 8
-    inc sp
-    call _add_interrupt_handler 
-    inc sp
-    inc sp
-    inc sp
     ld l, 0
     ret
 

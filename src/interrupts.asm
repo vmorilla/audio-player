@@ -1,6 +1,5 @@
 SECTION code_user
-PUBLIC _hardware_interrupt_mode, _add_interrupt_handler, _remove_interrupt_handler
-
+PUBLIC _hardware_interrupt_mode, _default_interrupt_handler, _interrupt_vector_table
 
 INCLUDE "macros.inc"
 
@@ -39,53 +38,16 @@ _hardware_interrupt_mode:
     ret
 
 _default_interrupt_handler:
+    ei
     reti
 
-; void add_interrupt_handler(Interrupt interrupt, InterruptFnPtr handler);
-_add_interrupt_handler:
-    push ix
-    ld ix, 4 ; first argument
-    add ix, sp
-    ld l, (ix) ; interrupt
-    sla l
-    ld h, 0
-    add hl, _interrupt_vector_table
-    ld e, (ix + 1) ; handler low byte
-    ld d, (ix + 2) ; handler high byte
-    di
-    ld (hl), e
-    inc hl
-    ld (hl), d
-    ei
-    pop ix
-    ret
-
-    ; void remove_interrupt_handler(Interrupt interrupt) __z88dk_fastcall;
-    ; hl = interrupt number
-_remove_interrupt_handler:
-    sla l
-    add hl, _interrupt_vector_table
-    ld e, _default_interrupt_handler & 0xFF
-    ld d, (_default_interrupt_handler >> 8) & 0xFF
-    di
-    ld (hl), e
-    inc hl
-    ld (hl), d
-    ei
-    ret
-
-
 SECTION code_interrupt_vector_table
-
-EXTERN _sound_interrupt_handler, _ula_interrupt_handler, _sound_loader_interrupt_handler
-
-    PUBLIC _interrupt_vector_table
 
 _interrupt_vector_table:
     defw _default_interrupt_handler ; 0: line interrupt
     defw _default_interrupt_handler ; 1: UART0 RX
     defw _default_interrupt_handler ; 2: UART1 RX
-    defw _default_interrupt_handler   ; 3: CTC channel 0
+    defw _default_interrupt_handler ; 3: CTC channel 0
     defw _default_interrupt_handler ; 4: CTC channel 1
     defw _default_interrupt_handler ; 5: CTC channel 2
     defw _default_interrupt_handler ; 6: CTC channel 3
@@ -93,7 +55,7 @@ _interrupt_vector_table:
     defw _default_interrupt_handler ; 8: CTC channel 5
     defw _default_interrupt_handler ; 9: CTC channel 6
     defw _default_interrupt_handler ; 10: CTC channel 7
-    defw _ula_interrupt_handler     ; 11: ULA interrupt
+    defw _default_interrupt_handler ; 11: ULA interrupt
     defw _default_interrupt_handler ; 12: UART0 TX
     defw _default_interrupt_handler ; 13: UART1 TX
     defw _default_interrupt_handler ; 14: Not documented

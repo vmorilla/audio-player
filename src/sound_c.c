@@ -1,7 +1,22 @@
 #include <intrinsic.h>
-
+#include <arch/zxn.h>
+#include <stdbool.h>
+#include "interrupts.h"
 #include "sound.h"
 #include "zxn_ctc.h"
+
+static bool sound_on = false;
+
+int8_t play_sound_file(const char *filename)
+{
+    stop_sound();
+    int8_t result = load_sound_file(filename);
+    if (result != -1)
+    {
+        start_sound();
+    }
+    return result;
+}
 
 void set_sound_samples_interrupt_rate(uint8_t freqKHz)
 {
@@ -12,14 +27,14 @@ void set_sound_samples_interrupt_rate(uint8_t freqKHz)
     IO_CTC0 = 0b10000101;
     // No interrupt follows vector, Enable interrupt, Timer mode, Prescaler 16, Rising edge, Automatic trigger, Time constant follows, Continue operation, Control word
     IO_CTC0 = time_constant;
-
-    // Interrup rate to check if a buffer needs to be loaded from disk
-    // IO_CTC1 = 0b10000101;
-    // IO_CTC1 = 255; // Slowest frequency possible with CTCs: 28MHz / (16 * (1 + 255)) = ~6860 Hz
 }
 
 void stop_sound(void)
 {
-    // Disable CTC0 interrupt
-    IO_CTC0 = 0b00000101;
+    interrupt_vector_table[INT_CTC_CHANNEL_0] = default_interrupt_handler;
+}
+
+void start_sound(void)
+{
+    interrupt_vector_table[INT_CTC_CHANNEL_0] = sound_interrupt_handler;
 }
