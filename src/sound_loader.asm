@@ -52,15 +52,28 @@ _play_sound_file:
     ld b, __ESXDOS_MODE_READ
     rst __ESX_RST_SYS
     defb __ESX_F_OPEN
-    jr nc, file_opened
+    jr nc, file_exists
     ld a, -1
     ld (sound_file_handler), a
     ld l,a
     ; There was an error opening the file
     pop ix
     ret
-file_opened:
+file_exists:
     ld (sound_file_handler), a
+    ; Saves the current page in MMU 6
+    READ_NEXTREG(REG_MMU6)
+    push af
+    ld a, _SOUND_SAMPLES_BUFFER >> 16
+    nextreg REG_MMU6, a
+    ; Fills both buffers
+    ld ix, _SOUND_SAMPLES_BUFFER
+    call lsound_loader_read_buffer
+    ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
+    call lsound_loader_read_buffer
+    ; Restores the currengt page in MMU 6
+    pop af
+    nextreg REG_MMU6, a
     pop ix
     ld l,a
     ret

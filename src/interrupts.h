@@ -3,13 +3,6 @@
 
 typedef void (*InterruptFnPtr)(void);
 
-/**
- * Interrupt vector table
- */
-extern InterruptFnPtr interrupt_vector_table[128];
-
-void hardware_interrupt_mode(void);
-
 typedef enum
 {
     INT_LINE = 0,
@@ -27,5 +20,15 @@ typedef enum
     INT_UART0_TX = 12,
     INT_UART1_TX = 13
 } Interrupt;
+
+/**
+ * Interrupt vector table
+ */
+extern InterruptFnPtr interrupt_vector_table[128];
+
+void hardware_interrupt_mode(void);
+
+void add_interrupt_handler(Interrupt interrupt, InterruptFnPtr handler);
+void remove_interrupt_handler(Interrupt interrupt) __z88dk_fastcall;
 
 #endif

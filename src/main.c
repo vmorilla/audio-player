@@ -18,6 +18,10 @@ int main(void)
     {
         printf("Error loading sound file!");
     }
+    else
+    {
+        add_interrupt_handler(INT_CTC_CHANNEL_0, sound_interrupt_handler);
+    }
 
     while (1)
     {
