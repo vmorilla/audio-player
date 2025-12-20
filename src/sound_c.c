@@ -14,6 +14,6 @@ void set_sound_samples_interrupt_rate(uint8_t freqKHz)
     IO_CTC0 = time_constant;
 
     // Interrup rate to check if a buffer needs to be loaded from disk
-    IO_CTC1 = 0b10000101;
-    IO_CTC1 = 255; // Slowest frequency possible with CTCs: 28MHz / (16 * (1 + 255)) = ~6860 Hz
+    // IO_CTC1 = 0b10000101;
+    // IO_CTC1 = 255; // Slowest frequency possible with CTCs: 28MHz / (16 * (1 + 255)) = ~6860 Hz
 }

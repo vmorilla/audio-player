@@ -13,8 +13,8 @@
 int main(void)
 {
     hardware_interrupt_mode();
-    set_sound_samples_interrupt_rate(16); // 16 kHz
-    if (play_sound_file("music/loop.raw") == -1)
+    set_sound_samples_interrupt_rate(32); // 32 kHz
+    if (play_sound_file("music/intro.raw") == -1)
     {
         printf("Error loading sound file!");
     }
