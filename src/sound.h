@@ -3,8 +3,6 @@
 
 #include <stdint.h>
 
-#define SOUND_SAMPLES_BUFFER_SIZE 256
-
 int8_t play_sound_file(const char *filename);
 int8_t load_sound_file(const char *filename) __z88dk_fastcall;
 
