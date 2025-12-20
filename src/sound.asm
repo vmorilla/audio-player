@@ -16,6 +16,11 @@ defc BUFFER_H_OVERFLOW_BIT = BUFFER_SIZE_BITS - 8
 defc DOUBLE_BUFFER_H_OVERFLOW_BIT = BUFFER_H_OVERFLOW_BIT + 1
 defc SAMPLES_BUFFER = 0x50C000
 
+; TODO: add to general library in z88dk
+defc REG_DAC_LEFT = 0x2C
+defc REG_DAC_MONO = 0x2D
+defc REG_DAC_RIGHT = 0x2E  
+
 ; Exported symbols
 defc _SOUND_SAMPLES_BUFFER_SIZE = BUFFER_SIZE
 defc _SOUND_SAMPLES_BUFFER = SAMPLES_BUFFER
@@ -33,10 +38,10 @@ _sound_interrupt_handler:
     nextreg REG_MMU6, a
     ld hl, (_sample_pointer)
     ld a, (hl)
-    nextreg 0x2c, a
+    nextreg REG_DAC_LEFT, a
     inc hl
     ld a, (hl)
-    nextreg 0x2e, a
+    nextreg REG_DAC_RIGHT, a
     inc hl
     ld a, l
     and a
