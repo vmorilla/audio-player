@@ -41,5 +41,11 @@ int main(void)
             play_sound_file("music/loop.raw");
             in_wait_nokey();
         }
+        if (key == 's')
+        {
+            printf("Stopping sound...\n");
+            stop_sound();
+            in_wait_nokey();
+        }
     }
 }

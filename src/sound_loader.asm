@@ -74,6 +74,9 @@ file_exists:
     call lsound_loader_read_buffer
     ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
     call lsound_loader_read_buffer
+    ; sets the sample pointer to the start of the first buffer
+    ld hl, _SOUND_SAMPLES_BUFFER
+    ld (_sample_pointer), hl
     ; Restores the currengt page in MMU 6
     pop af
     nextreg REG_MMU6, a

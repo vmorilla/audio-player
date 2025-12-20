@@ -17,3 +17,9 @@ void set_sound_samples_interrupt_rate(uint8_t freqKHz)
     // IO_CTC1 = 0b10000101;
     // IO_CTC1 = 255; // Slowest frequency possible with CTCs: 28MHz / (16 * (1 + 255)) = ~6860 Hz
 }
+
+void stop_sound(void)
+{
+    // Disable CTC0 interrupt
+    IO_CTC0 = 0b00000101;
+}
