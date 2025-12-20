@@ -39,7 +39,6 @@ _hardware_interrupt_mode:
     ret
 
 _default_interrupt_handler:
-    ei
     reti
 
 
