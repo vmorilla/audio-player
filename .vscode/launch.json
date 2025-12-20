@@ -11,11 +11,6 @@
                     "path": "src/**/*.lis",
                     "srcDirs": [
                         "src/",
-                        "src/arkos",
-                        "src/game/",
-                        "src/init",
-                        "src/menu/",
-                        "src/physics/",
                     ],
                     "mapFile": "build/audio-player.map",
                     "excludeFiles": []
@@ -51,11 +46,6 @@
                     "path": "src/**/*.lis",
                     "srcDirs": [
                         "src/",
-                        "src/arkos",
-                        "src/game/",
-                        "src/init",
-                        "src/menu/",
-                        "src/physics/",
                     ],
                     "mapFile": "build/audio-player.map",
                     "excludeFiles": []
