@@ -4,7 +4,7 @@ INCLUDE "macros.inc"
 SECTION code_user
 
 PUBLIC _load_sound_file, sound_loader_read_buffer
-EXTERN _sample_pointer
+EXTERN _sample_pointer, _default_interrupt_handler, _interrupt_vector_table
 EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
 // TODO: add to general library in z88dk
@@ -16,7 +16,19 @@ defc INT_CTC_CHANNEL_0 = 3
 sound_loader_read_buffer:   
     ld a, (sound_file_handler)
     cp -1
-    ret z
+    jr nz, load_chunk
+    ld hl, countdown_to_stop
+    dec (hl)
+    ret nz
+    ; Stops sound playback
+    di
+    ; Disables CTC channel 0 interrupt
+    ld hl, _interrupt_vector_table + (INT_CTC_CHANNEL_0 * 2)
+    ld (hl), _default_interrupt_handler & 0xFF
+    inc hl
+    ld (hl), _default_interrupt_handler >> 8
+    ret
+load_chunk:
     ld bc, _SOUND_SAMPLES_BUFFER_SIZE
     rst __ESX_RST_SYS
     defb __ESX_F_READ
@@ -26,16 +38,17 @@ sound_loader_read_buffer:
     ld a, l
     or h
     ret z ; buffer complete
+    ; The buffer has not been completely filled (file reached EOF)
+    ; We fill the rest of the buffer with 128 (silence)
     ld bc, hl
     ld hl, de
     dec bc
-    ld (hl), 0
+    ld (hl), 128
     ld a, b
     or c
-    jr close_handler
+    jr z, close_handler
     inc de
     ldir
-    ; The buffer has not been completely filled (file reached EOF)
     jr close_handler
 
 close_handler:
@@ -44,6 +57,8 @@ close_handler:
     defb __ESX_F_CLOSE
     ld a, -1
     ld (sound_file_handler), a
+    ld a, 2
+    ld (countdown_to_stop), a
     ret
 
 _load_sound_file:
@@ -93,3 +108,5 @@ SECTION data_user
 
 sound_file_handler: 
     defb -1
+countdown_to_stop:
+    defb 10 ; number of buffers with no file handler before stopping sound playback
