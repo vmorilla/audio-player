@@ -4,9 +4,11 @@ INCLUDE "macros.inc"
 SECTION code_user
 
 PUBLIC _play_sound_file, lsound_loader_read_buffer
-EXTERN _sample_pointer
+EXTERN _remove_interrupt_handler, _add_interrupt_handler, _
+EXTERN _sample_pointer, _sound_interrupt_handler
 EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
+defc INT_CTC_CHANNEL_0 = 3
 
 lsound_loader_read_buffer:   
     ld a, (sound_file_handler)
@@ -33,9 +35,6 @@ lsound_loader_read_buffer:
     ; The buffer has not been completely filled (file reached EOF)
     jr close_handler
 
-
-
-
 close_handler:
     ld a, (sound_file_handler)
     rst __ESX_RST_SYS
@@ -45,8 +44,13 @@ close_handler:
     ret
 
 _play_sound_file:
-    push ix
-    push hl
+    push hl ; saves the filename pointer
+    // First, we disable the interrupt handler
+    ld hl, INT_CTC_CHANNEL_0
+    call _remove_interrupt_handler
+    ld a, (sound_file_handler)
+    cp -1
+    call nz, close_handler ; Close previous file if any
     pop ix  ; IX points to the null terminated filename string
     ld a, '*'
     ld b, __ESXDOS_MODE_READ
@@ -57,7 +61,6 @@ _play_sound_file:
     ld (sound_file_handler), a
     ld l,a
     ; There was an error opening the file
-    pop ix
     ret
 file_exists:
     ld (sound_file_handler), a
@@ -74,8 +77,15 @@ file_exists:
     ; Restores the currengt page in MMU 6
     pop af
     nextreg REG_MMU6, a
-    pop ix
-    ld l,a
+    ; Enables interrupt handler
+    push _sound_interrupt_handler
+    push INT_CTC_CHANNEL_0 << 8
+    inc sp
+    call _add_interrupt_handler 
+    inc sp
+    inc sp
+    inc sp
+    ld l, 0
     ret
 
 
