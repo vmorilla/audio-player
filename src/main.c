@@ -19,6 +19,8 @@ int main(void)
     hardware_interrupt_mode();
     set_sound_samples_interrupt_rate(FREQ);
 
+    printf("'i' to play intro\n'l' to play loop\n's' to stop sound\n");
+
     while (1)
     {
         in_wait_key();
