@@ -5,7 +5,6 @@
 #include <stdio.h>
 
 #include <arch/zxn.h>
-#include <arch/zxn/esxdos.h>
 
 #include "debug.h"
 #include "interrupts.h"
