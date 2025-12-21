@@ -1,16 +1,14 @@
 INCLUDE "config_zxn_private.inc"
-INCLUDE "macros.inc"
 
 SECTION code_user
 
 PUBLIC _load_sound_file, sound_loader_read_buffer, _loop_mode
 EXTERN _sample_pointer, _default_interrupt_handler, _interrupt_vector_table
+EXTERN _set_mmu_data_page, _restore_mmu_data_page
 EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
 // TODO: add to general library in z88dk
 defc __IO_CTC0 = 0x183B // CTC channel 0 port
-
-
 defc INT_CTC_CHANNEL_0 = 3
 
 sound_loader_read_buffer:   
@@ -100,18 +98,19 @@ _load_sound_file:
     rst __ESX_RST_SYS
     defb __ESX_F_OPEN
     jr nc, file_exists
+    ; There was an error opening the file
     ld a, -1
     ld (sound_file_handler), a
     ld l,a
-    ; There was an error opening the file
     ret
 file_exists:
     ld (sound_file_handler), a
     ; Saves the current page in MMU 6
-    READ_NEXTREG(REG_MMU6)
-    push af
-    ld a, _SOUND_SAMPLES_BUFFER >> 16
-    nextreg REG_MMU6, a
+
+    ; Sets data page
+    ld l, _SOUND_SAMPLES_BUFFER >> 16
+    call _set_mmu_data_page
+
     ; Fills both buffers
     ld ix, _SOUND_SAMPLES_BUFFER
     call sound_loader_read_buffer
@@ -121,8 +120,8 @@ file_exists:
     ld hl, _SOUND_SAMPLES_BUFFER
     ld (_sample_pointer), hl
     ; Restores the currengt page in MMU 6
-    pop af
-    nextreg REG_MMU6, a
+    call _restore_mmu_data_page
+    ; Returns 0 = success
     ld l, 0
     ret
 

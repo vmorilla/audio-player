@@ -1,15 +1,13 @@
 
 SECTION code_user
 
-include "macros.inc"
-
 PUBLIC _sound_interrupt_handler
 PUBLIC _sample_pointer
 PUBLIC _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
 
-EXTERN sound_loader_read_buffer
+EXTERN sound_loader_read_buffer, _set_mmu_data_page, _restore_mmu_data_page
 
-defc BUFFER_SIZE_BITS = 10 ; 
+defc BUFFER_SIZE_BITS = 10 ; 11 bits -> 2048 bytes stereo buffer, 10 bits -> 1024 bytes stereo buffer
 defc BUFFER_SIZE = 2 ** BUFFER_SIZE_BITS
 defc BUFFER_H_MASK = (BUFFER_SIZE - 1) >> 8
 defc BUFFER_H_OVERFLOW_BIT = BUFFER_SIZE_BITS - 8
@@ -28,14 +26,12 @@ defc _SOUND_SAMPLES_BUFFER = SAMPLES_BUFFER
 _sound_interrupt_handler:
     push af
     push bc
+    push de
     push hl
+    push ix
+    ld l, _SOUND_SAMPLES_BUFFER >> 16
+    call _set_mmu_data_page
 
-    ; Saves the current page in MMU 6
-    READ_NEXTREG(REG_MMU6)
-    push af
-
-    ld a, _SOUND_SAMPLES_BUFFER >> 16
-    nextreg REG_MMU6, a
     ld hl, (_sample_pointer)
     ld a, (hl)
     nextreg REG_DAC_LEFT, a
@@ -51,28 +47,24 @@ _sound_interrupt_handler:
     jr nz, no_end_of_buffer
     res DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
     ld (_sample_pointer), hl
-    push ix
-    push de
     ld ix, _SOUND_SAMPLES_BUFFER
     bit BUFFER_H_OVERFLOW_BIT, h    ; If this bit is set, the first buffer has been consumed
     jr nz, read_buffer
     ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
 read_buffer:
     call sound_loader_read_buffer
-    pop de
-    pop ix
     jr end_interrupt
 
 no_end_of_buffer:
     ld (_sample_pointer), hl
     ; Restores the currengt page in MMU 6
 end_interrupt:
-    pop af
-    nextreg REG_MMU6, a
+    call _restore_mmu_data_page
+    pop ix
     pop hl
+    pop de
     pop bc
     pop af
-    ei
     reti
 ; ---------------------------------------------------------------    
 

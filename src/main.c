@@ -34,7 +34,10 @@ int main(void)
             printf("Playing loop...\n");
             play_sound_file("music/loop.raw", true);
             break;
-
+        case 'o':
+            printf("Playing outro...\n");
+            play_sound_file("music/outro.raw", false);
+            break;
         case 's':
             printf("Stopping sound...\n");
             stop_sound();
