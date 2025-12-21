@@ -34,6 +34,9 @@ _sound_interrupt_handler:
 
     ld hl, (_sample_pointer)
     ld a, (hl)
+    cp 0xFF         ; Check for end-of-buffer marker 
+    jr z, end_interrupt
+
     nextreg REG_DAC_LEFT, a
     inc hl
     ld a, (hl)

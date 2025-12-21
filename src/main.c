@@ -18,21 +18,24 @@ int main(void)
     hardware_interrupt_mode();
     set_sound_samples_interrupt_rate(FREQ);
 
-    printf("'i' to play intro\n'l' to play loop\n's' to stop sound\n");
+    printf("'s' to stop sound\n");
+    printf("'p' to play intro & loop\n");
+    printf("'q' to queue outro\n");
+    printf("'o' to play outro\n");
 
     while (1)
     {
         in_wait_key();
         switch (in_inkey())
         {
-        case 'i':
-            printf("Playing intro...\n");
+        case 'p':
+            printf("Playing intro & loop...\n");
             play_sound_file("music/intro.raw", false);
+            queue_sound_file("music/loop.raw", true);
             break;
-
-        case 'l':
-            printf("Playing loop...\n");
-            play_sound_file("music/loop.raw", true);
+        case 'q':
+            printf("Queuing outro...\n");
+            queue_sound_file("music/outro.raw", false);
             break;
         case 'o':
             printf("Playing outro...\n");
