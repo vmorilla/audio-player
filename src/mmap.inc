@@ -8,7 +8,7 @@
 ; section game_code
 ; section game_const
 
-SECTION BANK_40_CODE
+SECTION PAGE_80_DATA
     ORG 0x50C000   
 section sound_data
 
