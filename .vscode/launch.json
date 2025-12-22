@@ -29,7 +29,7 @@
                 "lowerCase": false
             },
             "topOfStack": "__register_sp",
-            "load": "dist/audio-player.nex",
+            "load": "build/audio-player.nex",
             "smallValuesMaximum": 513,
             "tmpDir": ".tmp"
         },
@@ -59,7 +59,7 @@
             "commandsAfterLaunch": [],
             "rootFolder": "${workspaceFolder}",
             "topOfStack": "__register_sp",
-            "load": "dist/audio-player.nex",
+            "load": "build/audio-player.nex",
             "smallValuesMaximum": 513,
             "tmpDir": ".tmp"
         },
