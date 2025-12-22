@@ -4,6 +4,9 @@ SECTION code_user
 
 PUBLIC _read_nextreg, _set_mmu_data_page, _restore_mmu_data_page
 
+; The alternative asm versions do not modify the interrupt state (disabled interruptions are assumed)
+PUBLIC set_mmu_data_page_di, restore_mmu_data_page_di
+
 INCLUDE "config_zxn_private.inc"
 
 ; uint8_t read_nextreg(uint8_t reg) __z88dk_fastcall;
@@ -21,35 +24,40 @@ _read_nextreg:
 
 ; void set_mmu_data_page(uint8_t value) __z88dk_fastcall;
 ; new page in L
-; modifies de, af
+; modifies hl, af
 _set_mmu_data_page:
     di
-    ld a, (datammu_stack_pointer)
-    dec a
-    ld e, a
-    ld d, datammu_stack >> 8
-    ld (datammu_stack_pointer), a
     ld a, l
-    ld (de), a
-    nextreg __REG_MMU6, a
+    call set_mmu_data_page_di
     ei
+    ret
+
+set_mmu_data_page_di:
+    ld hl, (datammu_stack_pointer)
+    dec hl
+    ld (datammu_stack_pointer), hl
+    ld (hl), a
+    nextreg __REG_MMU6, a
     ret
 
 ; void restore_mmu_data_page(void);
 ; restores previous MMU data page
-; modifies de, af
+; modifies hl, af
 ; returns in A the restored page
 _restore_mmu_data_page:
     di
-    ld a, (datammu_stack_pointer)
-    inc a
-    ld e, a
-    ld d, datammu_stack >> 8
-    ld (datammu_stack_pointer), a
-    ld a, (de)
-    nextreg __REG_MMU6, a
+    call restore_mmu_data_page_di
     ei
     ret
+
+restore_mmu_data_page_di:
+    ld hl, (datammu_stack_pointer)
+    inc hl
+    ld (datammu_stack_pointer), hl
+    ld a, (hl)
+    nextreg __REG_MMU6, a
+    ret
+
 
 
 SECTION data_user

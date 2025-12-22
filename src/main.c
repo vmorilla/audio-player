@@ -8,9 +8,47 @@
 
 #include "debug.h"
 #include "interrupts.h"
+#include "samples_counter.h"
 #include "sound.h"
 
 #define FREQ 16 // in kHz
+
+void show_instructions(void)
+{
+    puts("\n\n\n\n");
+    puts("'s' to stop sound\n");
+    puts("'p' to play intro & loop\n");
+    puts("'q' to queue outro\n");
+    puts("'o' to play outro\n");
+}
+
+void read_commands(void)
+{
+    switch (in_inkey())
+    {
+    case 'p':
+        puts("Playing intro & loop...\n");
+        play_sound_file("music/intro.raw", false);
+        queue_sound_file("music/loop.raw", true);
+        in_wait_nokey();
+        break;
+    case 'q':
+        puts("Queuing outro...\n");
+        queue_sound_file("music/outro.raw", false);
+        in_wait_nokey();
+        break;
+    case 'o':
+        puts("Playing outro...\n");
+        play_sound_file("music/outro.raw", false);
+        in_wait_nokey();
+        break;
+    case 's':
+        puts("Stopping sound...\n");
+        stop_sound();
+        in_wait_nokey();
+        break;
+    }
+}
 
 int main(void)
 {
@@ -18,34 +56,24 @@ int main(void)
     hardware_interrupt_mode();
     set_sound_samples_interrupt_rate(FREQ);
 
-    printf("'s' to stop sound\n");
-    printf("'p' to play intro & loop\n");
-    printf("'q' to queue outro\n");
-    printf("'o' to play outro\n");
+    show_instructions();
+
+    uint8_t n = 0;
+    uint16_t total = 0;
+    uint16_t average = 0;
 
     while (1)
     {
-        in_wait_key();
-        switch (in_inkey())
+        printf("\x16\x01\x01Rate: %u Hz      \n", sound_samples_played * 25);
+        printf("Average: %u Hz        \n", average * 25);
+        read_commands();
+        n++;
+        total += sound_samples_played;
+        if (n == 50)
         {
-        case 'p':
-            printf("Playing intro & loop...\n");
-            play_sound_file("music/intro.raw", false);
-            queue_sound_file("music/loop.raw", true);
-            break;
-        case 'q':
-            printf("Queuing outro...\n");
-            queue_sound_file("music/outro.raw", false);
-            break;
-        case 'o':
-            printf("Playing outro...\n");
-            play_sound_file("music/outro.raw", false);
-            break;
-        case 's':
-            printf("Stopping sound...\n");
-            stop_sound();
-            break;
+            average = total / 50;
+            n = 0;
+            total = 0;
         }
-        in_wait_nokey();
     }
 }
