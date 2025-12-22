@@ -3,7 +3,7 @@ SECTION code_user
 
 PUBLIC _sound_interrupt_handler
 PUBLIC _sample_pointer
-PUBLIC _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
+PUBLIC _SOUND_SAMPLES_BUFFER_SIZE, _sound_samples_buffer
 
 EXTERN sound_loader_read_buffer, _set_mmu_data_page, _restore_mmu_data_page
 
@@ -12,7 +12,7 @@ defc BUFFER_SIZE = 2 ** BUFFER_SIZE_BITS
 defc BUFFER_H_MASK = (BUFFER_SIZE - 1) >> 8
 defc BUFFER_H_OVERFLOW_BIT = BUFFER_SIZE_BITS - 8
 defc DOUBLE_BUFFER_H_OVERFLOW_BIT = BUFFER_H_OVERFLOW_BIT + 1
-defc SAMPLES_BUFFER = 0x50C000
+defc SOUND_EOF_MARKER = 0xFF
 
 ; TODO: add to general library in z88dk
 defc REG_DAC_LEFT = 0x2C
@@ -21,7 +21,6 @@ defc REG_DAC_RIGHT = 0x2E
 
 ; Exported symbols
 defc _SOUND_SAMPLES_BUFFER_SIZE = BUFFER_SIZE
-defc _SOUND_SAMPLES_BUFFER = SAMPLES_BUFFER
 
 _sound_interrupt_handler:
     push af
@@ -29,7 +28,7 @@ _sound_interrupt_handler:
     push de
     push hl
     push ix
-    ld l, _SOUND_SAMPLES_BUFFER >> 16
+    ld l, _sound_samples_buffer >> 16
     call _set_mmu_data_page
 
     ld hl, (_sample_pointer)
@@ -50,18 +49,18 @@ _sound_interrupt_handler:
     jr nz, no_end_of_buffer
     res DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
     ld (_sample_pointer), hl
-    ld ix, _SOUND_SAMPLES_BUFFER
+    ld ix, _sound_samples_buffer
     bit BUFFER_H_OVERFLOW_BIT, h    ; If this bit is set, the first buffer has been consumed
     jr nz, read_buffer
-    ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
+    ld ix, _sound_samples_buffer + _SOUND_SAMPLES_BUFFER_SIZE
 read_buffer:
     call sound_loader_read_buffer
     jr end_interrupt
 
 no_end_of_buffer:
     ld (_sample_pointer), hl
-    ; Restores the currengt page in MMU 6
 end_interrupt:
+    ; Restores the currengt page in MMU 6
     call _restore_mmu_data_page
     pop ix
     pop hl
@@ -74,6 +73,11 @@ end_interrupt:
 SECTION data_user
 
 _sample_pointer:
-    defw SAMPLES_BUFFER & 0xFFFF
-_end_sample_pointer:
-    defw (SAMPLES_BUFFER + 2 * BUFFER_SIZE) & 0xFFFF
+    defw _sound_samples_buffer & 0xFFFF
+
+
+SECTION sound_data
+
+_sound_samples_buffer: 
+    defs BUFFER_SIZE * 2, SOUND_EOF_MARKER
+

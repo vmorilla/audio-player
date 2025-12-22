@@ -8,10 +8,10 @@
 ; section game_code
 ; section game_const
 
-
+SECTION BANK_40_CODE
+    ORG 0x50C000   
+section sound_data
 
 SECTION BANK_0_CODE_INTERRUP_VECTOR_TABLE
     ORG 0xFC00
 section code_interrupt_vector_table
-
-

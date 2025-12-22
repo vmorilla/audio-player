@@ -3,13 +3,26 @@ INCLUDE "config_zxn_private.inc"
 SECTION code_user
 
 PUBLIC _load_sound_file, _queue_sound_file, sound_loader_read_buffer
-EXTERN _sample_pointer, _default_interrupt_handler, _interrupt_vector_table
+EXTERN _sample_pointer
 EXTERN _set_mmu_data_page, _restore_mmu_data_page
-EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
+EXTERN _SOUND_SAMPLES_BUFFER_SIZE, _sound_samples_buffer
 
 // TODO: add to general library in z88dk
 defc __IO_CTC0 = 0x183B // CTC channel 0 port
 defc INT_CTC_CHANNEL_0 = 3
+
+
+; Define FIFO item structure
+DEFVARS 0
+{
+    file_handle     DS.B 1     ; Offset 0: file handle (1 byte)
+    file_mode       DS.B 1     ; Offset 1: mode (bit 0 = loop mode)
+    FIFO_ITEM_SIZE          ; Total size = 2
+}
+
+defc FIFO_LENGTH = 4
+defc FIFO_SIZE = FIFO_LENGTH * FIFO_ITEM_SIZE
+
 
 sound_loader_read_buffer:   
     ld a, (sound_file_handler)
@@ -108,16 +121,16 @@ file_exists:
     ; Saves the current page in MMU 6
 
     ; Sets data page
-    ld l, _SOUND_SAMPLES_BUFFER >> 16
+    ld l, _sound_samples_buffer >> 16
     call _set_mmu_data_page
 
     ; Fills both buffers
-    ld ix, _SOUND_SAMPLES_BUFFER
+    ld ix, _sound_samples_buffer
     call sound_loader_read_buffer
-    ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
+    ld ix, _sound_samples_buffer + _SOUND_SAMPLES_BUFFER_SIZE
     call sound_loader_read_buffer
     ; sets the sample pointer to the start of the first buffer
-    ld hl, _SOUND_SAMPLES_BUFFER
+    ld hl, _sound_samples_buffer
     ld (_sample_pointer), hl
     ; Restores the currengt page in MMU 6
     call _restore_mmu_data_page
@@ -152,6 +165,26 @@ queue_file_exists:
 
 
 SECTION data_user
+
+stereo_channel_fifo_head: 
+    defw stereo_channel_fifo
+stereo_channel_fifo_tail:
+    defw stereo_channel_fifo
+
+central_channel_fifo_head:
+    defw central_channel_fifo
+central_channel_fifo_tail:
+    defw central_channel_fifo
+
+ALIGN FIFO_SIZE
+
+stereo_channel_fifo: 
+    defs FIFO_SIZE, -1
+
+central_channel_fifo: 
+    defs FIFO_SIZE, -1
+
+
 
 sound_file_handler: 
     defb -1
