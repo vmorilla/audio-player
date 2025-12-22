@@ -8,7 +8,7 @@ RAW_PREPROCESS = perl -pe 's/\xff/\xfe/g'
 
 # Source and Output files
 SOURCE_FILES := $(wildcard *.wav *.mp3)
-OUTPUT_DIR := ../../dist/music/
+OUTPUT_DIR := ../../build/music/
 OUTPUT_FILES := $(patsubst %.wav,$(OUTPUT_DIR)%.raw,$(filter %.wav,$(SOURCE_FILES))) \
                 $(patsubst %.mp3,$(OUTPUT_DIR)%.raw,$(filter %.mp3,$(SOURCE_FILES)))
 

@@ -3,16 +3,16 @@ SECTION code_user
 
 PUBLIC _sound_interrupt_handler
 PUBLIC _sample_pointer
-PUBLIC _SOUND_SAMPLES_BUFFER_SIZE, _SOUND_SAMPLES_BUFFER
+PUBLIC _SOUND_SAMPLES_BUFFER_SIZE, _sound_samples_buffer
 
-EXTERN sound_loader_read_buffer, _set_mmu_data_page, _restore_mmu_data_page
+EXTERN sound_loader_read_buffer, set_mmu_data_page_di, restore_mmu_data_page_di
 
 defc BUFFER_SIZE_BITS = 10 ; 11 bits -> 2048 bytes stereo buffer, 10 bits -> 1024 bytes stereo buffer
 defc BUFFER_SIZE = 2 ** BUFFER_SIZE_BITS
 defc BUFFER_H_MASK = (BUFFER_SIZE - 1) >> 8
 defc BUFFER_H_OVERFLOW_BIT = BUFFER_SIZE_BITS - 8
 defc DOUBLE_BUFFER_H_OVERFLOW_BIT = BUFFER_H_OVERFLOW_BIT + 1
-defc SAMPLES_BUFFER = 0x50C000
+defc SOUND_EOF_MARKER = 0xFF
 
 ; TODO: add to general library in z88dk
 defc REG_DAC_LEFT = 0x2C
@@ -21,16 +21,13 @@ defc REG_DAC_RIGHT = 0x2E
 
 ; Exported symbols
 defc _SOUND_SAMPLES_BUFFER_SIZE = BUFFER_SIZE
-defc _SOUND_SAMPLES_BUFFER = SAMPLES_BUFFER
 
 _sound_interrupt_handler:
     push af
-    push bc
-    push de
     push hl
-    push ix
-    ld l, _SOUND_SAMPLES_BUFFER >> 16
-    call _set_mmu_data_page
+
+    ld a, _sound_samples_buffer >> 16
+    call set_mmu_data_page_di
 
     ld hl, (_sample_pointer)
     ld a, (hl)
@@ -42,38 +39,68 @@ _sound_interrupt_handler:
     ld a, (hl)
     nextreg REG_DAC_RIGHT, a
     inc hl
-    ld a, l
-    and a
-    jr nz, no_end_of_buffer
     ld a, h
     and BUFFER_H_MASK
-    jr nz, no_end_of_buffer
+    or l
+    jr z, end_of_buffer
+
+    ld (_sample_pointer), hl
+
+end_interrupt:
+    ; Restores the currengt page in MMU 6
+    call restore_mmu_data_page_di
+    pop hl
+    pop af
+    ei
+    reti
+
+end_of_buffer:
+
     res DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
     ld (_sample_pointer), hl
-    ld ix, _SOUND_SAMPLES_BUFFER
+
+    ; signals that the ISR is done and continues to update buffers
+    push buffer_needs_update
+    ei
+    reti
+
+buffer_needs_update:
+    ; saves the rest of registers
+    push bc
+    push de
+    push ix
+    ld ix, _sound_samples_buffer
     bit BUFFER_H_OVERFLOW_BIT, h    ; If this bit is set, the first buffer has been consumed
     jr nz, read_buffer
-    ld ix, _SOUND_SAMPLES_BUFFER + _SOUND_SAMPLES_BUFFER_SIZE
+    ld ix, _sound_samples_buffer + _SOUND_SAMPLES_BUFFER_SIZE
 read_buffer:
     call sound_loader_read_buffer
-    jr end_interrupt
-
-no_end_of_buffer:
-    ld (_sample_pointer), hl
-    ; Restores the currengt page in MMU 6
-end_interrupt:
-    call _restore_mmu_data_page
+    ; restores registers
     pop ix
-    pop hl
     pop de
     pop bc
+    ; Restores the currengt page in MMU 6
+    di
+    call restore_mmu_data_page_di
+    ; Restores registers saved at the beginning of the interrupt
+    pop hl
     pop af
-    reti
+    ei
+    
+    ret ; <--- reti was already called  
+
 ; ---------------------------------------------------------------    
 
 SECTION data_user
 
 _sample_pointer:
-    defw SAMPLES_BUFFER & 0xFFFF
-_end_sample_pointer:
-    defw (SAMPLES_BUFFER + 2 * BUFFER_SIZE) & 0xFFFF
+    defw _sound_samples_buffer & 0xFFFF
+
+_guard:
+    defb 1
+
+SECTION sound_data
+
+_sound_samples_buffer: 
+    defs BUFFER_SIZE * 2, SOUND_EOF_MARKER
+

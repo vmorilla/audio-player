@@ -1,5 +1,6 @@
 SECTION code_user
 PUBLIC _hardware_interrupt_mode, _default_interrupt_handler, _interrupt_vector_table
+EXTERN _samples_counter_interrupt_handler
 
 INCLUDE "macros.inc"
 
@@ -17,7 +18,7 @@ _hardware_interrupt_mode:
     and %00011110
     or (_interrupt_vector_table & %11100000) | %00000001    
     nextreg REG_INTERRUPT_CONTROL, a
-    nextreg REG_INTERRUPT_ENABLE_0, %10000001 ; Enable ULA and expansion bus interrupts
+    nextreg REG_INTERRUPT_ENABLE_0, %00000010 ; Enable line and disables expansion bus interrupts
     nextreg REG_INTERRUPT_ENABLE_1, 0 ; enable CTC channel 0 interrupt
     nextreg REG_INTERRUPT_ENABLE_2, 0
 
@@ -25,9 +26,9 @@ _hardware_interrupt_mode:
 	nextreg REG_INTERRUPT_STATUS_1, $FF ; Set status bits to clear
 	nextreg REG_INTERRUPT_STATUS_2, $FF ; 
 
-    nextreg REG_DMA_INTERRUPT_ENABLE_0,0 
+    nextreg REG_DMA_INTERRUPT_ENABLE_0,0x02
     ; Enabling DMA interrupts does not seem to cause any harm
-	nextreg REG_DMA_INTERRUPT_ENABLE_1,0
+	nextreg REG_DMA_INTERRUPT_ENABLE_1,0x01
 	;nextreg REG_DMA_INTERRUPT_ENABLE_1,0xff
 	nextreg REG_DMA_INTERRUPT_ENABLE_2,0 
 
@@ -44,7 +45,7 @@ _default_interrupt_handler:
 SECTION code_interrupt_vector_table
 
 _interrupt_vector_table:
-    defw _default_interrupt_handler ; 0: line interrupt
+    defw _samples_counter_interrupt_handler ; 0: line interrupt
     defw _default_interrupt_handler ; 1: UART0 RX
     defw _default_interrupt_handler ; 2: UART1 RX
     defw _default_interrupt_handler ; 3: CTC channel 0
