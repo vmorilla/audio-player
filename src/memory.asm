@@ -62,8 +62,6 @@ restore_mmu_data_page_di:
 
 SECTION data_user
 
-ALIGN	16
-
 ; Stack area to store previous MMU data page values. We don't expect more than 2 or 3 nested calls
 datammu_stack: 
     defs 16, 0
