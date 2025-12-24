@@ -1,8 +1,9 @@
 SECTION code_user
 PUBLIC _hardware_interrupt_mode, _default_interrupt_handler, _interrupt_vector_table
+EXTERN _read_nextreg
 EXTERN _samples_counter_interrupt_handler, _sound_interrupt_handler
 
-INCLUDE "macros.inc"
+INCLUDE "zxn_constants.h"
 
 ; Important.... init sound must be called after setting the hardware interrupt mode...
 ; CTC interruptions are happending despite the corresponding register is set to 0
@@ -14,7 +15,9 @@ _hardware_interrupt_mode:
     ; That's because starting in nextzxos versions for core 3.01.10, nextzxos operates in the stackless nmi mode 
     ; which is controlled by bit 3. (see https://discord.com/channels/556228195767156758/692885312296190102/894284968614854749)
 
-    READ_NEXTREG(REG_INTERRUPT_CONTROL)
+    ld l, REG_INTERRUPT_CONTROL
+    call _read_nextreg
+    ld a, l
     and %00011110
     or (_interrupt_vector_table & %11100000) | %00000001    
     nextreg REG_INTERRUPT_CONTROL, a
