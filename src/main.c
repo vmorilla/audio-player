@@ -16,7 +16,7 @@
 void show_instructions(void)
 {
     puts("\n\n\n\n");
-    puts("'p' to stop sound\n");
+    puts("'p' to pause sound\n");
     puts("'r' to resume sound\n");
     puts("'i' to play intro & loop\n");
     puts("'q' to queue outro\n");
@@ -25,34 +25,34 @@ void show_instructions(void)
 
 void read_commands(void)
 {
-    switch (in_inkey())
+    int key = in_inkey();
+    if (key != 0)
     {
-    case 'i':
-        puts("Playing intro & loop...\n");
-        play_sound_file("music/intro.raw", false);
-        queue_sound_file("music/loop.raw", true);
+        switch (key)
+        {
+        case 'i':
+            puts("Playing intro & loop...\n");
+            play_sound_file("music/intro.raw", false);
+            queue_sound_file("music/loop.raw", true);
+            break;
+        case 'q':
+            puts("Queuing outro...\n");
+            queue_sound_file("music/outro.raw", false);
+            break;
+        case 'o':
+            puts("Playing outro...\n");
+            play_sound_file("music/outro.raw", false);
+            break;
+        case 'p':
+            puts("Pause sound...\n");
+            pause_sound();
+            break;
+        case 'r':
+            puts("Resuming sound...\n");
+            start_sound();
+            break;
+        }
         in_wait_nokey();
-        break;
-    case 'q':
-        puts("Queuing outro...\n");
-        queue_sound_file("music/outro.raw", false);
-        in_wait_nokey();
-        break;
-    case 'o':
-        puts("Playing outro...\n");
-        play_sound_file("music/outro.raw", false);
-        in_wait_nokey();
-        break;
-    case 'p':
-        puts("Stopping sound...\n");
-        pause_sound();
-        in_wait_nokey();
-        break;
-    case 'r':
-        puts("Resuming sound...\n");
-        start_sound();
-        in_wait_nokey();
-        break;
     }
 }
 
