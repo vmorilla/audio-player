@@ -1,6 +1,6 @@
 SECTION code_user
 PUBLIC _hardware_interrupt_mode, _default_interrupt_handler, _interrupt_vector_table
-EXTERN _samples_counter_interrupt_handler
+EXTERN _samples_counter_interrupt_handler, _sound_interrupt_handler
 
 INCLUDE "macros.inc"
 
@@ -48,7 +48,7 @@ _interrupt_vector_table:
     defw _samples_counter_interrupt_handler ; 0: line interrupt
     defw _default_interrupt_handler ; 1: UART0 RX
     defw _default_interrupt_handler ; 2: UART1 RX
-    defw _default_interrupt_handler ; 3: CTC channel 0
+    defw _sound_interrupt_handler ; 3: CTC channel 0
     defw _default_interrupt_handler ; 4: CTC channel 1
     defw _default_interrupt_handler ; 5: CTC channel 2
     defw _default_interrupt_handler ; 6: CTC channel 3

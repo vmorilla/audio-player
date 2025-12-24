@@ -5,19 +5,6 @@
 #include "sound.h"
 #include "zxn_ctc.h"
 
-static bool sound_on = false;
-
-int8_t play_sound_file(const char *filename, bool loop)
-{
-    stop_sound();
-    int8_t result = load_sound_file(filename, loop);
-    if (result != -1)
-    {
-        start_sound();
-    }
-    return result;
-}
-
 void set_sound_samples_interrupt_rate(uint8_t freqKHz)
 {
     // CTC frequency = CPU frequency / ( prescaler(16) * ( 1 + time_constant ) )
@@ -29,12 +16,12 @@ void set_sound_samples_interrupt_rate(uint8_t freqKHz)
     IO_CTC0 = time_constant;
 }
 
-void stop_sound(void)
+void pause_sound(void)
 {
-    interrupt_vector_table[INT_CTC_CHANNEL_0] = default_interrupt_handler;
+    stereo_channel_paused = true;
 }
 
 void start_sound(void)
 {
-    interrupt_vector_table[INT_CTC_CHANNEL_0] = sound_interrupt_handler;
+    stereo_channel_paused = false;
 }
