@@ -7,6 +7,7 @@ INCLUDE "zxn_constants.h"
 PUBLIC mono_samples_pointer, stereo_samples_pointer, sound_interrupt_handler
 PUBLIC _play_stereo_sound_file, _queue_stereo_sound_file, _stereo_channel_paused
 PUBLIC _play_mono_sound_file,  _queue_mono_sound_file, _mono_channel_paused
+PUBLIC _stereo_channel_callback, _mono_channel_callback
 PUBLIC STEREO_BUFFER_SIZE
 
 ; PUBLIC _sound_interrupt_handler
@@ -76,7 +77,7 @@ sound_interrupt_handler:
     ld a, 1
     ld (stereo_samples_channel + SOUND_CHANNEL_PAUSED), a
 
-    ld hl, stereo_channel_callback
+    ld hl, _stereo_channel_callback
     ld a, (hl)
     inc hl
     or (hl)
@@ -112,7 +113,7 @@ mono_channel:
     ld a, 1
     ld (_mono_channel_paused), a
 
-    ld hl, mono_channel_callback
+    ld hl, _mono_channel_callback
     ld a, (hl)
     inc hl
     or (hl)
@@ -211,6 +212,16 @@ make_callback:
     push ix
     push iy
 
+    exx
+    push bc
+    push de
+    push hl
+    exx
+    
+    ex af, af'
+    push af
+    ex af, af'
+    
     ; Saves the point to return after the callback
     push return_from_callback
 
@@ -227,6 +238,16 @@ make_callback:
     ei
     reti ; we jump to the callback function  
 return_from_callback:
+    ex af, af'
+    pop af
+    ex af, af'
+
+    exx
+    pop hl
+    pop de
+    pop bc
+    exx
+    
     ; We return safely from the callback
     pop iy
     pop ix
@@ -467,7 +488,7 @@ SECTION data_user
 
 defc _stereo_channel_paused = stereo_samples_channel + SOUND_CHANNEL_PAUSED
 defc stereo_samples_pointer = stereo_samples_channel + SOUND_CHANNEL_CURSOR
-defc stereo_channel_callback = stereo_samples_channel + SOUND_CHANNEL_CALLBACK
+defc _stereo_channel_callback = stereo_samples_channel + SOUND_CHANNEL_CALLBACK
 
     ; SOUND_CHANNEL_PAUSED                DS.B 1       ; 1 = paused, 0 = playing
     ; SOUND_CHANNEL_CURSOR                DS.W 1       ; current cursor in the buffer
@@ -491,7 +512,7 @@ stereo_samples_channel:
 
 defc _mono_channel_paused = mono_samples_channel + SOUND_CHANNEL_PAUSED   
 defc mono_samples_pointer = mono_samples_channel + SOUND_CHANNEL_CURSOR
-defc mono_channel_callback = mono_samples_channel + SOUND_CHANNEL_CALLBACK
+defc _mono_channel_callback = mono_samples_channel + SOUND_CHANNEL_CALLBACK
 
 mono_samples_channel:
     defb 1                                  ; paused by default

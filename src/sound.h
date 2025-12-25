@@ -18,4 +18,7 @@ void set_sound_samples_interrupt_rate(uint8_t freqKHz);
 extern bool volatile stereo_channel_paused;
 extern bool volatile mono_channel_paused;
 
+extern void (*volatile stereo_channel_callback)(void);
+extern void (*volatile mono_channel_callback)(void);
+
 #endif
