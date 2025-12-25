@@ -225,6 +225,7 @@ check_loop_mode:
     bit 0, (IY + SOUND_CHANNEL_LOOP_MODE)
     jr z, nothing_more_to_read
 
+    ld a, (iy + SOUND_CHANNEL_FILE_HANDLE)
     // Rewind...
     call f_rewind
     jr sound_loader_read_buffer
@@ -234,8 +235,6 @@ nothing_more_to_read:
     ld a, SOUND_EOF_MARKER
     ld (ix), a
     ret
-
-
 
 play_stereo_sound_file:
     push iy
