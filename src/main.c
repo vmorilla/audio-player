@@ -32,16 +32,16 @@ void read_commands(void)
         {
         case 'i':
             puts("Playing intro & loop...\n");
-            play_sound_file("music/intro.raw", false);
-            queue_sound_file("music/loop.raw", true);
+            play_stereo_sound_file("music/intro.raw", false);
+            queue_stereo_sound_file("music/loop.raw", true);
             break;
         case 'q':
             puts("Queuing outro...\n");
-            queue_sound_file("music/outro.raw", false);
+            queue_stereo_sound_file("music/outro.raw", false);
             break;
         case 'o':
             puts("Playing outro...\n");
-            play_sound_file("music/outro.raw", false);
+            play_stereo_sound_file("music/outro.raw", false);
             break;
         case 'p':
             puts("Pause sound...\n");

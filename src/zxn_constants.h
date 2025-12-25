@@ -17,6 +17,10 @@
 #define REG_DMA_INTERRUPT_ENABLE_1 0xCD
 #define REG_DMA_INTERRUPT_ENABLE_2 0xCE
 
+#define REG_DAC_LEFT 0x2C
+#define REG_DAC_MONO 0x2D
+#define REG_DAC_RIGHT 0x2E
+
 #define CTC0 0x183B // CTC channel 0 port
 #define CTC1 0x193B // CTC channel 1 port
 #define CTC2 0x1A3B // CTC channel 2 port

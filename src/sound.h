@@ -3,8 +3,10 @@
 
 #include <stdint.h>
 
-int8_t play_sound_file(const char *filename, bool loop);
-int8_t queue_sound_file(const char *filename, bool loop);
+int8_t play_stereo_sound_file(const char *filename, bool loop);
+int8_t queue_stereo_sound_file(const char *filename, bool loop);
+int8_t play_mono_sound_file(const char *filename, bool loop);
+int8_t queue_mono_sound_file(const char *filename, bool loop);
 
 void start_sound(void);
 void pause_sound(void);
@@ -17,5 +19,6 @@ void sound_interrupt_handler(void);
 void set_sound_samples_interrupt_rate(uint8_t freqKHz);
 
 extern bool volatile stereo_channel_paused;
+extern bool volatile mono_channel_paused;
 
 #endif
