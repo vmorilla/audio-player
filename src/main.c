@@ -11,8 +11,6 @@
 #include "samples_counter.h"
 #include "sound.h"
 
-#define FREQ 16 // in kHz
-
 void show_instructions(void)
 {
     puts("\n\n\n\n");
@@ -62,7 +60,7 @@ int main(void)
 {
     zx_cls(PAPER_WHITE);
     hardware_interrupt_mode();
-    set_sound_samples_interrupt_rate(FREQ);
+    set_sound_samples_interrupt_rate(16); // 16 kHz
 
     show_instructions();
 
