@@ -1,26 +1,31 @@
-PUBLIC _samples_counter_interrupt_handler, _sound_samples_played
-EXTERN _sample_pointer, _SOUND_SAMPLES_BUFFER_SIZE
+INCLUDE "macros.inc"
+
+PUBLIC samples_counter_interrupt_handler
+EXPORT sound_samples_played
+
+
+EXTERN stereo_samples_pointer, STEREO_BUFFER_SIZE
 
 SECTION code_user
 
-_samples_counter_interrupt_handler:
+samples_counter_interrupt_handler:
     push af
     push de
     push hl
 
     ; calculate samples played by substracting the the last sample pointer from the current sample pointer
-    ld de, (_last_sample_pointer)
-    ld hl, (_sample_pointer)
+    ld de, (last_sample_pointer)
+    ld hl, (stereo_samples_pointer)
     
     ei
-    ld (_last_sample_pointer), hl
+    ld (last_sample_pointer), hl
     and a
     sbc hl, de
     jr nc, no_carry
-    ld de, _SOUND_SAMPLES_BUFFER_SIZE * 2
+    ld de, STEREO_BUFFER_SIZE * 2
     add hl, de
 no_carry:
-    ld (_sound_samples_played), hl
+    ld (sound_samples_played), hl
 
     pop hl
     pop de
@@ -29,7 +34,7 @@ no_carry:
 
 SECTION data_user
 
-_last_sample_pointer:
+last_sample_pointer:
     defw 0
-_sound_samples_played:
+sound_samples_played:
     defw 0

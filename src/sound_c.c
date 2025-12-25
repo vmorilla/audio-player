@@ -5,18 +5,17 @@
 #include "sound.h"
 #include "zxn_ctc.h"
 
-static bool sound_on = false;
-
-int8_t play_sound_file(const char *filename, bool loop)
-{
-    stop_sound();
-    int8_t result = load_sound_file(filename, loop);
-    if (result != -1)
-    {
-        start_sound();
-    }
-    return result;
-}
+// typedef struct
+// {
+//     volatile bool paused;               // 1 = paused, 0 = playing
+//     volatile char *cursor;              // current cursor in the buffer
+//     volatile int8_t file_handle;        // file handle associated to the channel
+//     volatile int8_t queued_file_handle; // queued file handle to be played when the current one ends
+//     volatile bool loop_mode;            // loop mode (0 = no loop, 1 = loop)
+//     const char *buffer_area;            // buffer address (low part)
+//     const uint16_t buffer_area_size;    // buffer size in bytes
+//     void (*callback)(void);             // callback function when the sound ends
+// } SoundChannel;
 
 void set_sound_samples_interrupt_rate(uint8_t freqKHz)
 {
@@ -27,14 +26,4 @@ void set_sound_samples_interrupt_rate(uint8_t freqKHz)
     IO_CTC0 = 0b10000101;
     // No interrupt follows vector, Enable interrupt, Timer mode, Prescaler 16, Rising edge, Automatic trigger, Time constant follows, Continue operation, Control word
     IO_CTC0 = time_constant;
-}
-
-void stop_sound(void)
-{
-    interrupt_vector_table[INT_CTC_CHANNEL_0] = default_interrupt_handler;
-}
-
-void start_sound(void)
-{
-    interrupt_vector_table[INT_CTC_CHANNEL_0] = sound_interrupt_handler;
 }

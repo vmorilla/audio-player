@@ -5,7 +5,7 @@ SECTION code_user
 PUBLIC _read_nextreg, _set_mmu_data_page, _restore_mmu_data_page
 
 ; The alternative asm versions do not modify the interrupt state (disabled interruptions are assumed)
-PUBLIC set_mmu_data_page_di, restore_mmu_data_page_di
+PUBLIC set_mmu_data_page_di, restore_mmu_data_page_di, read_nextreg_di
 
 INCLUDE "config_zxn_private.inc"
 
@@ -21,6 +21,12 @@ _read_nextreg:
     ei
     ret
 
+read_nextreg_di:
+    ld bc, __IO_NEXTREG_REG
+    out (c), a
+    inc c
+    in a, (c)
+    ret
 
 ; void set_mmu_data_page(uint8_t value) __z88dk_fastcall;
 ; new page in L
@@ -61,8 +67,6 @@ restore_mmu_data_page_di:
 
 
 SECTION data_user
-
-ALIGN	16
 
 ; Stack area to store previous MMU data page values. We don't expect more than 2 or 3 nested calls
 datammu_stack: 

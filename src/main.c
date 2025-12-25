@@ -11,42 +11,48 @@
 #include "samples_counter.h"
 #include "sound.h"
 
-#define FREQ 16 // in kHz
-
 void show_instructions(void)
 {
     puts("\n\n\n\n");
-    puts("'s' to stop sound\n");
-    puts("'p' to play intro & loop\n");
+    puts("'p' to pause / resume\n");
+    puts("'i' to play intro & loop\n");
     puts("'q' to queue outro\n");
     puts("'o' to play outro\n");
+    puts("'s' to play a scream (mono)\n");
 }
 
 void read_commands(void)
 {
-    switch (in_inkey())
+    int key = in_inkey();
+    if (key != 0)
     {
-    case 'p':
-        puts("Playing intro & loop...\n");
-        play_sound_file("music/intro.raw", false);
-        queue_sound_file("music/loop.raw", true);
+        switch (key)
+        {
+        case 'i':
+            puts("Playing intro & loop...\n");
+            play_stereo_sound_file("music/intro.raw", false);
+            queue_stereo_sound_file("music/loop.raw", true);
+            break;
+        case 'q':
+            puts("Queuing outro...\n");
+            queue_stereo_sound_file("music/outro.raw", false);
+            break;
+        case 'o':
+            puts("Playing outro...\n");
+            play_stereo_sound_file("music/outro.raw", false);
+            break;
+        case 'p':
+
+            puts(stereo_channel_paused ? "Resume sound...\n" : "Pause sound...\n");
+            stereo_channel_paused = !stereo_channel_paused;
+            break;
+
+        case 's':
+            puts("Screaming...\n");
+            play_mono_sound_file("music/scream.raw", false);
+            break;
+        }
         in_wait_nokey();
-        break;
-    case 'q':
-        puts("Queuing outro...\n");
-        queue_sound_file("music/outro.raw", false);
-        in_wait_nokey();
-        break;
-    case 'o':
-        puts("Playing outro...\n");
-        play_sound_file("music/outro.raw", false);
-        in_wait_nokey();
-        break;
-    case 's':
-        puts("Stopping sound...\n");
-        stop_sound();
-        in_wait_nokey();
-        break;
     }
 }
 
@@ -54,7 +60,7 @@ int main(void)
 {
     zx_cls(PAPER_WHITE);
     hardware_interrupt_mode();
-    set_sound_samples_interrupt_rate(FREQ);
+    set_sound_samples_interrupt_rate(16); // 16 kHz
 
     show_instructions();
 
