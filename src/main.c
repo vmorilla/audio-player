@@ -20,7 +20,7 @@ void show_instructions(void)
     puts("'i' to play intro & loop\n");
     puts("'q' to queue outro\n");
     puts("'o' to play outro\n");
-    puts("'s' to play a scream (mono`so)\n");
+    puts("'s' to play a scream (mono)\n");
 }
 
 void read_commands(void)
