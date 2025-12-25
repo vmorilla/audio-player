@@ -51,6 +51,10 @@ void read_commands(void)
             puts("Resuming sound...\n");
             start_sound();
             break;
+        case 's':
+            puts("Screaming...\n");
+            play_mono_sound_file("music/scream.raw", false);
+            break;
         }
         in_wait_nokey();
     }
