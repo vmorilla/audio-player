@@ -8,9 +8,6 @@ int8_t queue_stereo_sound_file(const char *filename, bool loop);
 int8_t play_mono_sound_file(const char *filename, bool loop);
 int8_t queue_mono_sound_file(const char *filename, bool loop);
 
-void start_sound(void);
-void pause_sound(void);
-
 void sound_interrupt_handler(void);
 
 /**

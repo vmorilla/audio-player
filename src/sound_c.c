@@ -27,13 +27,3 @@ void set_sound_samples_interrupt_rate(uint8_t freqKHz)
     // No interrupt follows vector, Enable interrupt, Timer mode, Prescaler 16, Rising edge, Automatic trigger, Time constant follows, Continue operation, Control word
     IO_CTC0 = time_constant;
 }
-
-void pause_sound(void)
-{
-    stereo_channel_paused = true;
-}
-
-void start_sound(void)
-{
-    stereo_channel_paused = false;
-}

@@ -16,11 +16,11 @@
 void show_instructions(void)
 {
     puts("\n\n\n\n");
-    puts("'p' to pause sound\n");
-    puts("'r' to resume sound\n");
+    puts("'p' to pause / resume\n");
     puts("'i' to play intro & loop\n");
     puts("'q' to queue outro\n");
     puts("'o' to play outro\n");
+    puts("'s' to play a scream (mono`so)\n");
 }
 
 void read_commands(void)
@@ -44,13 +44,11 @@ void read_commands(void)
             play_stereo_sound_file("music/outro.raw", false);
             break;
         case 'p':
-            puts("Pause sound...\n");
-            pause_sound();
+
+            puts(stereo_channel_paused ? "Resume sound...\n" : "Pause sound...\n");
+            stereo_channel_paused = !stereo_channel_paused;
             break;
-        case 'r':
-            puts("Resuming sound...\n");
-            start_sound();
-            break;
+
         case 's':
             puts("Screaming...\n");
             play_mono_sound_file("music/scream.raw", false);
