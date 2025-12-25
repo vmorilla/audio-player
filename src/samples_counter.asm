@@ -1,7 +1,6 @@
-INCLUDE "macros.inc"
 
 PUBLIC samples_counter_interrupt_handler
-EXPORT sound_samples_played
+PUBLIC _sound_samples_played
 
 
 EXTERN stereo_samples_pointer, STEREO_BUFFER_SIZE
@@ -25,7 +24,7 @@ samples_counter_interrupt_handler:
     ld de, STEREO_BUFFER_SIZE * 2
     add hl, de
 no_carry:
-    ld (sound_samples_played), hl
+    ld (_sound_samples_played), hl
 
     pop hl
     pop de
@@ -36,5 +35,5 @@ SECTION data_user
 
 last_sample_pointer:
     defw 0
-sound_samples_played:
+_sound_samples_played:
     defw 0

@@ -1,6 +1,5 @@
 SECTION code_user
 
-INCLUDE "macros.inc"
 INCLUDE "zxn_constants.h"
 INCLUDE "config_zxn_private.inc"
 
@@ -28,7 +27,7 @@ _hardware_interrupt_mode:
     or (interrupt_vector_table & %11100000) | %00000001    
     nextreg REG_INTERRUPT_CONTROL, a
     nextreg REG_INTERRUPT_ENABLE_0, %00000010 ; Enable line and disables expansion bus interrupts
-    nextreg REG_INTERRUPT_ENABLE_1, 1 ; enable CTC channel 0 interrupt
+    nextreg REG_INTERRUPT_ENABLE_1, 0 ; enable CTC channel 0 interrupt
     nextreg REG_INTERRUPT_ENABLE_2, 0
 
 	nextreg REG_INTERRUPT_STATUS_0, $FF ; 

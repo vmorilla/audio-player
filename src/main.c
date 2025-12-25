@@ -33,22 +33,25 @@ void read_commands(void)
             play_stereo_sound_file("music/intro.raw", false);
             queue_stereo_sound_file("music/loop.raw", true);
             break;
+
         case 'q':
             puts("Queuing outro...\n");
             queue_stereo_sound_file("music/outro.raw", false);
             break;
+
         case 'o':
             puts("Playing outro...\n");
             play_stereo_sound_file("music/outro.raw", false);
             break;
-        case 'p':
 
+        case 'p':
             puts(stereo_channel_paused ? "Resume sound...\n" : "Pause sound...\n");
             stereo_channel_paused = !stereo_channel_paused;
             break;
 
         case 's':
             puts("Screaming...\n");
+            puts("\x16\x01\x15.               \n");
             play_mono_sound_file("music/scream.raw", false);
             break;
         }
@@ -56,11 +59,18 @@ void read_commands(void)
     }
 }
 
+void post_scream(void)
+{
+    puts("\x16\x01\x15Scream finished!\n");
+}
+
 int main(void)
 {
     zx_cls(PAPER_WHITE);
     hardware_interrupt_mode();
     set_sound_samples_interrupt_rate(16); // 16 kHz
+
+    mono_channel_callback = post_scream;
 
     show_instructions();
 

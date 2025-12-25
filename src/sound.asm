@@ -3,18 +3,12 @@ SECTION code_user
 
 INCLUDE "config_zxn_private.inc"
 INCLUDE "zxn_constants.h"
-INCLUDE "macros.inc"
 
-EXPORT mono_samples_pointer
-EXPORT stereo_samples_pointer
-EXPORT sound_interrupt_handler
-EXPORT play_stereo_sound_file
-EXPORT play_mono_sound_file
-EXPORT queue_stereo_sound_file
-EXPORT queue_mono_sound_file
-EXPORT stereo_channel_paused
-EXPORT mono_channel_paused
-EXPORT STEREO_BUFFER_SIZE
+PUBLIC mono_samples_pointer, stereo_samples_pointer, sound_interrupt_handler
+PUBLIC _play_stereo_sound_file, _queue_stereo_sound_file, _stereo_channel_paused
+PUBLIC _play_mono_sound_file,  _queue_mono_sound_file, _mono_channel_paused
+PUBLIC _stereo_channel_callback, _mono_channel_callback
+PUBLIC STEREO_BUFFER_SIZE
 
 ; PUBLIC _sound_interrupt_handler
 ; PUBLIC _stereo_samples_pointer, _stereo_channel_paused
@@ -70,7 +64,7 @@ sound_interrupt_handler:
     ld a, stereo_samples_buffer >> 16
     call set_mmu_data_page_di
 
-    ld a, (stereo_channel_paused)
+    ld a, (_stereo_channel_paused)
     and a
     jr nz, mono_channel ; channel paused
 
@@ -82,6 +76,14 @@ sound_interrupt_handler:
     ; Mute stereo channel and continue with mono channel
     ld a, 1
     ld (stereo_samples_channel + SOUND_CHANNEL_PAUSED), a
+
+    ld hl, _stereo_channel_callback
+    ld a, (hl)
+    inc hl
+    or (hl)
+    dec hl
+    jp nz, make_callback
+
     jr mono_channel
 
 stereo_output_sample:
@@ -98,7 +100,7 @@ stereo_output_sample:
     ld (stereo_samples_pointer), hl
 
 mono_channel:
-    ld a, (mono_channel_paused)
+    ld a, (_mono_channel_paused)
     and a
     jr nz, end_interrupt ; channel paused
 
@@ -109,7 +111,15 @@ mono_channel:
 
     ; Mute mono channel
     ld a, 1
-    ld (mono_channel_paused), a
+    ld (_mono_channel_paused), a
+
+    ld hl, _mono_channel_callback
+    ld a, (hl)
+    inc hl
+    or (hl)
+    dec hl
+    jp nz, make_callback
+
     jr end_interrupt
 
 mono_output_sample:
@@ -193,6 +203,61 @@ mono_buffer_needs_update:
     jr buffer_needs_update
 ; ---------------------------------------------------------------    
 
+make_callback:
+    ; We save additional registers since the user function might use them
+    ; We will assume that alt registers are preserved by the user function
+    ; af and hl are already saved
+    push bc
+    push de
+    push ix
+    push iy
+
+    exx
+    push bc
+    push de
+    push hl
+    exx
+    
+    ex af, af'
+    push af
+    ex af, af'
+    
+    ; Saves the point to return after the callback
+    push return_from_callback
+
+    ; Prepares the callback function call and sets it to zero
+    ld e, (hl)
+    ld (hl), 0
+    inc hl
+    ld d, (hl)
+    ; Saves the callback address
+    push de
+    ; Call back with the previous MMU data page
+    call restore_mmu_data_page_di
+
+    ei
+    reti ; we jump to the callback function  
+return_from_callback:
+    ex af, af'
+    pop af
+    ex af, af'
+
+    exx
+    pop hl
+    pop de
+    pop bc
+    exx
+    
+    ; We return safely from the callback
+    pop iy
+    pop ix
+    pop de
+    pop bc
+    pop hl
+    pop af
+    ret
+
+; ---------------------------------------------------------------------------
 
 ; Loads data into the buffer pointed by IX and length indicated by BC from the file handle pointed by HL
 
@@ -236,28 +301,28 @@ nothing_more_to_read:
     ld (ix), a
     ret
 
-play_stereo_sound_file:
+_play_stereo_sound_file:
     push iy
     ld iy, stereo_samples_channel
     call play_sound_file_struct
     pop iy
     ret
 
-play_mono_sound_file:
+_play_mono_sound_file:
     push iy
     ld iy, mono_samples_channel
     call play_sound_file_struct
     pop iy
     ret
 
-queue_stereo_sound_file:
+_queue_stereo_sound_file:
     push iy
     ld iy, stereo_samples_channel
     call queue_sound_file_struct
     pop iy
     ret
 
-queue_mono_sound_file:
+_queue_mono_sound_file:
     push iy
     ld iy, mono_samples_channel
     call queue_sound_file_struct
@@ -421,8 +486,9 @@ f_open:
 
 SECTION data_user
 
-defc stereo_channel_paused = stereo_samples_channel + SOUND_CHANNEL_PAUSED
+defc _stereo_channel_paused = stereo_samples_channel + SOUND_CHANNEL_PAUSED
 defc stereo_samples_pointer = stereo_samples_channel + SOUND_CHANNEL_CURSOR
+defc _stereo_channel_callback = stereo_samples_channel + SOUND_CHANNEL_CALLBACK
 
     ; SOUND_CHANNEL_PAUSED                DS.B 1       ; 1 = paused, 0 = playing
     ; SOUND_CHANNEL_CURSOR                DS.W 1       ; current cursor in the buffer
@@ -444,8 +510,9 @@ stereo_samples_channel:
     defw STEREO_BUFFER_SIZE * 2             ; buffer area size 
     defw 0                                  ; callback function when the sound ends  
 
-defc mono_channel_paused = mono_samples_channel + SOUND_CHANNEL_PAUSED   
+defc _mono_channel_paused = mono_samples_channel + SOUND_CHANNEL_PAUSED   
 defc mono_samples_pointer = mono_samples_channel + SOUND_CHANNEL_CURSOR
+defc _mono_channel_callback = mono_samples_channel + SOUND_CHANNEL_CALLBACK
 
 mono_samples_channel:
     defb 1                                  ; paused by default
