@@ -10,23 +10,6 @@ PUBLIC _play_mono_sound_file,  _queue_mono_sound_file, _mono_channel_paused
 PUBLIC _stereo_channel_callback, _mono_channel_callback
 PUBLIC STEREO_BUFFER_SIZE
 
-; PUBLIC _sound_interrupt_handler
-; PUBLIC _stereo_samples_pointer, _stereo_channel_paused
-; PUBLIC _mono_samples_pointer, _mono_channel_paused
-; PUBLIC _play_stereo_sound_file, _play_mono_sound_file
-; PUBLIC _queue_stereo_sound_file, _queue_mono_sound_file
-
-; defc _sound_interrupt_handler = sound_interrupt_handler
-; defc _stereo_samples_pointer = stereo_samples_pointer
-; defc _stereo_channel_paused = stereo_channel_paused
-; defc _mono_samples_pointer = mono_samples_pointer
-; defc _mono_channel_paused = mono_channel_paused
-; defc _play_stereo_sound_file = play_stereo_sound_file
-; defc _play_mono_sound_file = play_mono_sound_file
-; defc _queue_stereo_sound_file = queue_stereo_sound_file
-; defc _queue_mono_sound_file = queue_mono_sound_file
-
-
 EXTERN set_mmu_data_page_di, restore_mmu_data_page_di, _set_mmu_data_page, _restore_mmu_data_page
 
 defc STERO_BUFFER_SIZE_BITS = 10 ; 11 bits -> 2048 bytes stereo buffer, 10 bits -> 1024 bytes stereo buffer
