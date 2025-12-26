@@ -5,8 +5,8 @@ INCLUDE "config_zxn_private.inc"
 INCLUDE "zxn_constants.h"
 
 PUBLIC mono_samples_pointer, stereo_samples_pointer, sound_interrupt_handler
-PUBLIC _play_stereo_sound_file, _queue_stereo_sound_file, _stereo_channel_paused
-PUBLIC _play_mono_sound_file,  _queue_mono_sound_file, _mono_channel_paused
+PUBLIC _play_sound_file, _queue_sound_file 
+PUBLIC _stereo_channel_paused, _mono_channel_paused
 PUBLIC _stereo_channel_callback, _mono_channel_callback
 PUBLIC STEREO_BUFFER_SIZE
 
@@ -284,45 +284,16 @@ nothing_more_to_read:
     ld (ix), a
     ret
 
-_play_stereo_sound_file:
-    push iy
-    ld iy, stereo_samples_channel
-    call play_sound_file_struct
-    pop iy
-    ret
+; ---------------------------------------------------------------------------
+; int8_t play_sound_file(SoundChannel channel, const char *filename, bool loop);
+; ---------------------------------------------------------------------------
 
-_play_mono_sound_file:
-    push iy
-    ld iy, mono_samples_channel
-    call play_sound_file_struct
-    pop iy
-    ret
-
-_queue_stereo_sound_file:
-    push iy
-    ld iy, stereo_samples_channel
-    call queue_sound_file_struct
-    pop iy
-    ret
-
-_queue_mono_sound_file:
-    push iy
-    ld iy, mono_samples_channel
-    call queue_sound_file_struct
-    pop iy
-    ret
-
-; int8_t load_sound_file(const char *filename, bool loop);
-
-; Input:
-; IY = pointer to sound channel data structure
-; Parameters in stack:
-;    const char * filename 
-;    bool loop
-play_sound_file_struct:
+_play_sound_file:
     push ix
-    ld ix, 8
+    ld ix, 4
     add ix, sp
+    push iy
+    call get_channel_from_parameter
 
     ; Pauses the sound channel
     ld (iy + SOUND_CHANNEL_PAUSED), 1 ; pauses the channel
@@ -332,17 +303,20 @@ play_sound_file_struct:
     cp -1
     call nz, f_close ; Close previous file if any
 
-    ld a, (ix + 2) ; loop parameter
+    ld a, (ix + 3) ; loop parameter
     ld (iy + SOUND_CHANNEL_LOOP_MODE), a
-    ld hl, (ix + 0) ; filename parameter
+    ld hl, (ix + 1) ; filename parameter
 
     call f_open
     jr nc, file_exists
     ; There was an error opening the file
     ld (iy + SOUND_CHANNEL_FILE_HANDLE), -1
     ld l,a
+
+    pop iy
     pop ix
     ret
+
 
 file_exists:
     ld (iy + SOUND_CHANNEL_FILE_HANDLE), a
@@ -366,33 +340,60 @@ file_exists:
     call _restore_mmu_data_page
     ; Returns 0 = success
     ld l, 0
+
+    pop iy
     pop ix
     ret
 
-; int8_t load_sound_file(const char *filename, bool loop);
-queue_sound_file_struct:
+; ---------------------------------------------------------------------------
+; int8_t queue_sound_file(SoundChannel channel, const char *filename, bool loop);
+; ---------------------------------------------------------------------------
+
+_queue_sound_file:
     push ix
+    ld ix, 4
+    add ix, sp
+    push iy
+    call get_channel_from_parameter
+
     ; Closes previous file if any
     ld a, (iy + SOUND_CHANNEL_QUEUED_FILE_HANDLE)
     cp -1
     call nz, f_close ; Close previous file if any
     
-    ld ix, 8
-    add ix, sp
-    ld a, (ix + 2) ; loop parameter
+    ld a, (ix + 3) ; loop parameter
     ld (iy + SOUND_CHANNEL_LOOP_MODE), a
-    ld hl, (ix + 0) ; filename parameter
+    ld hl, (ix + 1) ; filename parameter
     call f_open
+
     jr nc, queue_file_exists
     ; There was an error opening the file
     ld a, -1
 queue_file_exists:
     ld (iy + SOUND_CHANNEL_QUEUED_FILE_HANDLE), a
     ld l,a
+    pop iy
     pop ix
     ret
 
 ; ---------------------------------------------------------------------------
+
+; Input:
+; IX + 0 = channel parameter
+; Output:
+; IY = pointer to sound channel data structure
+get_channel_from_parameter:
+    ld e, (ix + 0) ; channel parameter
+    sla e
+    ld d, 0
+    ld hl, channels_table
+    add hl, de
+    ld e, (hl)
+    inc hl
+    ld d, (hl)
+    push de
+    pop iy
+    ret
 
 
     ; ----------------------------------------------------------------------
@@ -505,11 +506,23 @@ mono_samples_channel:
     defb 0                                  ; loop mode (0 = no loop, 1 = loop)
     defw mono_samples_buffer & 0xFFFF    ; buffer address 
     defw MONO_BUFFER_SIZE * 2             ; buffer area size 
+    defw 0                                  ; callback function when the sound ends  
+
+
+channels_table:
+    defw stereo_samples_channel
+    defw stereo_samples_channel
+    defw stereo_samples_channel
+    defw mono_samples_channel
 
 SECTION sound_data
 
 stereo_samples_buffer: 
-    defs STEREO_BUFFER_SIZE * 2, SOUND_EOF_MARKER
+left_channel_samples_buffer:
+    defs STEREO_BUFFER_SIZE, SOUND_EOF_MARKER
+
+right_channel_samples_buffer:
+    defs STEREO_BUFFER_SIZE, SOUND_EOF_MARKER
 
 mono_samples_buffer: 
     defs STEREO_BUFFER_SIZE, SOUND_EOF_MARKER

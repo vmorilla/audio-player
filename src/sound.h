@@ -3,10 +3,31 @@
 
 #include <stdint.h>
 
-int8_t play_stereo_sound_file(const char *filename, bool loop);
-int8_t queue_stereo_sound_file(const char *filename, bool loop);
-int8_t play_mono_sound_file(const char *filename, bool loop);
-int8_t queue_mono_sound_file(const char *filename, bool loop);
+typedef enum
+{
+    STEREO_CHANNEL,
+    LEFT_CHANNEL,
+    RIGHT_CHANNEL,
+    MONO_CHANNEL
+} SoundChannelId;
+
+// typedef struct SoundChannelStruct
+// {
+//     bool paused;                     //                DS.B 1       ; 1 = paused, 0 = playing
+//     volatile char *cursor;           //                DS.W 1       ; current cursor in the buffer
+//     int8_t file_handle;              //           DS.B 1       ; file handle associated to the channel
+//     int8_t queued_file_handle;       //    DS.B 1       ; queued file handle to be played when the current one ends
+//     bool loop_mode;                  //             DS.B 1       ; loop mode (0 = no loop, 1 = loop)
+//     const char *buffer_area;         //           DS.W 1       ; buffer address (low part)
+//     const uint16_t buffer_area_size; //      DS.W 1       ; buffer size in bytes
+//     void (*callback)(void);          //              DS.W 1       ; callback function when the sound ends
+// } SoundChannel;
+
+int8_t play_sound_file(SoundChannelId channel, const char *filename, bool loop);
+int8_t play_sound_file_callback(SoundChannelId channel, const char *filename, void (*callback)(void));
+
+int8_t queue_sound_file(SoundChannelId channel, const char *filename, bool loop);
+int8_t queue_sound_file_callback(SoundChannelId channel, const char *filename, void (*callback)(void));
 
 void sound_interrupt_handler(void);
 

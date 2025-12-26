@@ -30,18 +30,18 @@ void read_commands(void)
         {
         case 'i':
             puts("Playing intro & loop...\n");
-            play_stereo_sound_file("music/intro.raw", false);
-            queue_stereo_sound_file("music/loop.raw", true);
+            play_sound_file(STEREO_CHANNEL, "music/stereo_channel.raw", false);
+            // queue_sound_file(STEREO_CHANNEL, "music/loop.raw", true);
             break;
 
         case 'q':
             puts("Queuing outro...\n");
-            queue_stereo_sound_file("music/outro.raw", false);
+            queue_sound_file(STEREO_CHANNEL, "music/outro.raw", false);
             break;
 
         case 'o':
             puts("Playing outro...\n");
-            play_stereo_sound_file("music/outro.raw", false);
+            play_sound_file(STEREO_CHANNEL, "music/outro.raw", false);
             break;
 
         case 'p':
@@ -50,9 +50,9 @@ void read_commands(void)
             break;
 
         case 's':
-            puts("Screaming...\n");
+            puts("Mono channel...\n");
             puts("\x16\x01\x15.               \n");
-            play_mono_sound_file("music/scream.raw", false);
+            play_sound_file(MONO_CHANNEL, "music/scream.raw", false);
             break;
         }
         in_wait_nokey();
@@ -70,7 +70,7 @@ int main(void)
     hardware_interrupt_mode();
     set_sound_samples_interrupt_rate(16); // 16 kHz
 
-    mono_channel_callback = post_scream;
+    // mono_channel_callback = post_scream;
 
     show_instructions();
 
