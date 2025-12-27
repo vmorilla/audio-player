@@ -34,9 +34,9 @@ _hardware_interrupt_mode:
 	nextreg REG_INTERRUPT_STATUS_1, $FF ; Set status bits to clear
 	nextreg REG_INTERRUPT_STATUS_2, $FF ; 
 
-    nextreg REG_DMA_INTERRUPT_ENABLE_0,0x02
+    nextreg REG_DMA_INTERRUPT_ENABLE_0,0x00
     ; Enabling DMA interrupts does not seem to cause any harm
-	nextreg REG_DMA_INTERRUPT_ENABLE_1,0x01
+	nextreg REG_DMA_INTERRUPT_ENABLE_1,0x00
 	;nextreg REG_DMA_INTERRUPT_ENABLE_1,0xff
 	nextreg REG_DMA_INTERRUPT_ENABLE_2,0 
 

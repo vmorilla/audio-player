@@ -20,6 +20,8 @@
 void set_sound_samples_interrupt_rate(uint8_t freqKHz)
 {
     // CTC frequency = CPU frequency / ( prescaler(16) * ( 1 + time_constant ) )
+    // Rearranged:
+    // time_constant = CTC frequency / (CPU frequeny *
     // Assuming CPU frequency set at 28MHz
     uint8_t time_constant = (28000 / (freqKHz * 16)) - 1;
 

@@ -17,7 +17,7 @@ OUTPUT_FILES := $(patsubst %.wav,$(OUTPUT_DIR)%.raw,$(filter %.wav,$(SOURCE_FILE
 # -ac 2: stereo
 # -ar 16000: 16kHz sample rate
 # -acodec pcm_u8: 8-bit unsigned PCM
-SOUND_OPTIONS = -ar 16000 -acodec pcm_u8 -af loudnorm=I=-16:LRA=11:TP=-1.5 -y -f u8 #-f wav
+SOUND_OPTIONS = -ar 8000 -acodec pcm_u8 -af loudnorm=I=-16:LRA=11:TP=-1.5 -y -f u8 #-f wav
 
 all: $(OUTPUT_FILES)
 

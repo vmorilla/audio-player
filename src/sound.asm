@@ -11,6 +11,7 @@ PUBLIC _stereo_channel_callback, _mono_channel_callback
 PUBLIC STEREO_BUFFER_SIZE
 
 EXTERN set_mmu_data_page_di, restore_mmu_data_page_di, _set_mmu_data_page, _restore_mmu_data_page
+EXTERN __trace_registers
 
 defc STERO_BUFFER_SIZE_BITS = 10 ; 11 bits -> 2048 bytes stereo buffer, 10 bits -> 1024 bytes stereo buffer
 defc STEREO_BUFFER_SIZE = 2 ** STERO_BUFFER_SIZE_BITS
@@ -261,8 +262,7 @@ load_chunk:
     ; Queued file found, switch to it
     ; First close current handler
     ld a, (IY + SOUND_CHANNEL_FILE_HANDLE)
-    rst __ESX_RST_SYS
-    defb __ESX_F_CLOSE
+    call f_close
 
     ld a, (IY + SOUND_CHANNEL_QUEUED_FILE_HANDLE)
     ld (IY + SOUND_CHANNEL_FILE_HANDLE), a
@@ -402,22 +402,41 @@ get_channel_from_parameter:
     ; IX and BC are preserved
     ; ----------------------------------------------------------------------
 f_rewind:
-    // Loop mode...
+
+    call __trace_registers
+    defb "w: \0"
+
     push bc ; save current buffer position
     push ix ; save remaining bytes to fill
     ld ixl, 0   ; esx_seek_set
     ld bc, 0   ; bcde = offset 0
     ld de, 0
+    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_SEEK
+    call f_release_semaphore
     pop ix ; restore buffer position
     pop bc ; restore bytes to fill
+
+    call __trace_registers
+    defb "W: \0"
+
     ret 
 
 f_close:
     ; A = file handle
+
+    call __trace_registers
+    defb "c: \0"
+
+    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_CLOSE
+    call f_release_semaphore
+
+    call __trace_registers
+    defb "C: \0"
+
     ret
 
 
@@ -440,9 +459,14 @@ f_read:
     ;   HL = pending bytes to read, 
     ;   BC and DE = bytes actually read
     ;   Z flag set if buffer completely filled
+    call __trace_registers
+    defb "r: \0"
+
     push bc
+    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_READ
+    call f_release_semaphore
     ; Output: HL = updated buffer pointer, BC and DE = bytes actually read
     push hl
     pop ix ; <-- updated buffer pointer
@@ -450,6 +474,10 @@ f_read:
     sbc hl, bc
     ld a, l
     or h
+
+    call __trace_registers
+    defb "R: \0"
+
     ret
 
     ; Opens a file
@@ -459,16 +487,46 @@ f_open:
     ld ix, hl
     ld a, '*'
     ld b, __ESXDOS_MODE_READ
+    call __trace_registers
+    defb "o: \0"
+
+    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_OPEN
+    call f_release_semaphore
+
+    call __trace_registers
+    defb "O: \0"
+
     ret
     ; ----------------------------------------------------------------------
+
+f_acquire_semaphore:
+    ; Acquires the ESXDOS semaphore
+__acquire_loop:
+    ld hl, _esxdos_semaphore
+    dec (hl)
+    ret z ; acquired
+    inc (hl)
+    halt
+    jr __acquire_loop
+
+f_release_semaphore:
+    ; Releases the ESXDOS semaphore
+    push hl
+    ld hl, _esxdos_semaphore
+    inc (hl)
+    pop hl
+    ret
 
 
 
 ; ---------------------------------------------------------------------------
 
 SECTION data_user
+
+_esxdos_semaphore:
+    defb 1 ; semaphore for ESXDOS calls
 
 defc _stereo_channel_paused = stereo_samples_channel + SOUND_CHANNEL_PAUSED
 defc stereo_samples_pointer = stereo_samples_channel + SOUND_CHANNEL_CURSOR
@@ -498,6 +556,8 @@ defc _mono_channel_paused = mono_samples_channel + SOUND_CHANNEL_PAUSED
 defc mono_samples_pointer = mono_samples_channel + SOUND_CHANNEL_CURSOR
 defc _mono_channel_callback = mono_samples_channel + SOUND_CHANNEL_CALLBACK
 
+defc trace_ula = 0x6000 + 20 * 40 + 20 ; Tilemap top left corner
+
 mono_samples_channel:
     defb 1                                  ; paused by default
     defw mono_samples_buffer & 0xFFFF    ; current cursor in the buffer
@@ -526,3 +586,5 @@ right_channel_samples_buffer:
 
 mono_samples_buffer: 
     defs STEREO_BUFFER_SIZE, SOUND_EOF_MARKER
+
+
