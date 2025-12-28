@@ -3,22 +3,25 @@
 
 #include <stdint.h>
 
-int8_t play_stereo_sound_file(const char *filename, bool loop);
-int8_t queue_stereo_sound_file(const char *filename, bool loop);
-int8_t play_mono_sound_file(const char *filename, bool loop);
-int8_t queue_mono_sound_file(const char *filename, bool loop);
+typedef enum
+{
+    STEREO_CHANNEL,
+    MONO_CHANNEL,
+    LEFT_CHANNEL,
+    RIGHT_CHANNEL
+} SoundChannelId;
 
-void sound_interrupt_handler(void);
+// Plays a sound file on the specified channel
+// Returns -1 if error, the file handle if OK
+int8_t play_sound_file(SoundChannelId channel, const char *filename);
+
+// Updates the buffer in the sound channels if needed. Should be called in the
+// application main loop
+void update_sound_channels(void);
 
 /**
  * Sets the interrupt rate for sound samples generation in kHz
  */
 void set_sound_samples_interrupt_rate(uint8_t freqKHz);
-
-extern bool volatile stereo_channel_paused;
-extern bool volatile mono_channel_paused;
-
-extern void (*volatile stereo_channel_callback)(void);
-extern void (*volatile mono_channel_callback)(void);
 
 #endif

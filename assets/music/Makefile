@@ -1,11 +1,9 @@
 # Tools
 FFMPEG = ffmpeg -v error
-MONO_STEREO = ffprobe -v error -select_streams a:0 -show_entries stream=channels -of default=noprint_wrappers=1:nokey=1
 
 # Replaces 0xFF bytes with 0xFE. 0xFF will be used to mark the end of a sequence in
 # the sound player, so it cannot appear in the raw data.
 RAW_PREPROCESS = perl -pe 's/\xff/\xfe/g'
-
 
 # Source and Output files
 SOURCE_FILES := $(wildcard *.wav *.mp3)
