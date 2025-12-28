@@ -6,8 +6,6 @@ INCLUDE "zxn_constants.h"
 
 PUBLIC mono_samples_pointer, stereo_samples_pointer, sound_interrupt_handler
 PUBLIC _play_sound_file, _queue_sound_file 
-PUBLIC _stereo_channel_paused, _mono_channel_paused
-PUBLIC _stereo_channel_callback, _mono_channel_callback
 PUBLIC STEREO_BUFFER_SIZE
 
 EXTERN set_mmu_data_page_di, restore_mmu_data_page_di, _set_mmu_data_page, _restore_mmu_data_page
@@ -27,19 +25,6 @@ defc MONO_DOUBLE_BUFFER_H_OVERFLOW_BIT = MONO_BUFFER_H_OVERFLOW_BIT + 1
 
 defc SOUND_EOF_MARKER = 0xFF
 
-; Sound channel data structure
-  DEFVARS 0               
-  {
-    SOUND_CHANNEL_PAUSED                DS.B 1       ; 1 = paused, 0 = playing
-    SOUND_CHANNEL_CURSOR                DS.W 1       ; current cursor in the buffer
-    SOUND_CHANNEL_FILE_HANDLE           DS.B 1       ; file handle associated to the channel
-    SOUND_CHANNEL_QUEUED_FILE_HANDLE    DS.B 1       ; queued file handle to be played when the current one ends
-    SOUND_CHANNEL_LOOP_MODE             DS.B 1       ; loop mode (0 = no loop, 1 = loop)
-    SOUND_CHANNEL_BUFFER_AREA           DS.W 1       ; buffer address (low part)
-    SOUND_CHANNEL_BUFFER_AREA_SIZE      DS.W 1       ; buffer size in bytes
-    SOUND_CHANNEL_CALLBACK              DS.W 1       ; callback function when the sound ends 
-    SOUND_CHANNEL_STRUCT_SIZE    
-  }
 
 sound_interrupt_handler:
     push af
@@ -48,27 +33,30 @@ sound_interrupt_handler:
     ld a, stereo_samples_buffer >> 16
     call set_mmu_data_page_di
 
-    ld a, (_stereo_channel_paused)
+    call process_stereo_sound_channel
+    call process_mono_sound_channel
+
+    call restore_mmu_data_page_di
+
+    pop hl
+    pop af
+    ei
+    reti
+
+process_stereo_sound_channel:
+    ; returns if buffers are empty
+    ld a, (stereo_samples_channel + SC_REMAINING_BUFFERS)
     and a
-    jr nz, mono_channel ; channel paused
+    ret z
 
-    ld hl, (stereo_samples_pointer)
+    ld hl, (stereo_samples_channel + SC_CURSOR)
     ld a, (hl)
-    cp SOUND_EOF_MARKER         ; Check for end-of-buffer marker 
+    cp SOUND_EOF_MARKER         ; Check for end-of-buffer marker
     jr nz, stereo_output_sample
-
-    ; Mute stereo channel and continue with mono channel
-    ld a, 1
-    ld (stereo_samples_channel + SOUND_CHANNEL_PAUSED), a
-
-    ld hl, _stereo_channel_callback
-    ld a, (hl)
-    inc hl
-    or (hl)
-    dec hl
-    jp nz, make_callback
-
-    jr mono_channel
+    
+    xor a
+    ld (stereo_samples_channel + SC_REMAINING_BUFFERS), a
+    ret
 
 stereo_output_sample:
     nextreg REG_DAC_LEFT, a
@@ -76,71 +64,51 @@ stereo_output_sample:
     ld a, (hl)
     nextreg REG_DAC_RIGHT, a
     inc hl
+
+    res STEREO_DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
+    ld (stereo_samples_channel + SC_CURSOR), hl
+
     ld a, h
     and STEREO_BUFFER_H_MASK
     or l
-    jr z, end_of_stereo_buffer
+    ret nz
 
-    ld (stereo_samples_pointer), hl
+    ; End of buffer reached
+    ld hl, stereo_samples_channel + SC_REMAINING_BUFFERS
+    dec (hl)
+    ret
 
-mono_channel:
-    ld a, (_mono_channel_paused)
+process_mono_sound_channel:
+    ; returns if both buffers are empty
+    ld a, (mono_samples_channel + SC_REMAINING_BUFFERS)
     and a
-    jr nz, end_interrupt ; channel paused
+    ret z
 
-    ld hl, (mono_samples_pointer)
+    ld hl, (mono_samples_channel + SC_CURSOR)
     ld a, (hl)
     cp SOUND_EOF_MARKER         ; Check for end-of-buffer marker
     jr nz, mono_output_sample
-
-    ; Mute mono channel
-    ld a, 1
-    ld (_mono_channel_paused), a
-
-    ld hl, _mono_channel_callback
-    ld a, (hl)
-    inc hl
-    or (hl)
-    dec hl
-    jp nz, make_callback
-
-    jr end_interrupt
+    
+    xor a
+    ld (mono_samples_channel + SC_REMAINING_BUFFERS), a
+    ret
 
 mono_output_sample:
     nextreg REG_DAC_MONO, a
     inc hl
+
+    res MONO_DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
+    ld (mono_samples_channel + SC_CURSOR), hl
+
     ld a, h
     and MONO_BUFFER_H_MASK
     or l
-    jr z, end_of_mono_buffer
+    ret nz
 
-    ld (mono_samples_pointer), hl
-
-    ; Restores the currengt page in MMU 6
-end_interrupt:
-    call restore_mmu_data_page_di
-    pop hl
-    pop af
-    ei
-    reti
-
-end_of_stereo_buffer:
-    res STEREO_DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
-    ld (stereo_samples_pointer), hl
-
-    ; signals that the ISR is done and continues to update buffers
-    push stereo_buffer_needs_update
-    ei
-    reti
-
-end_of_mono_buffer:
-    res MONO_DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
-    ld (mono_samples_pointer), hl
-
-    ; signals that the ISR is done and continues to update buffers
-    push mono_buffer_needs_update
-    ei
-    reti
+    ; End of buffer reached
+    ld hl, mono_samples_channel + SC_REMAINING_BUFFERS
+    dec (hl)
+    ret
 
 
 stereo_buffer_needs_update:
@@ -156,7 +124,9 @@ stereo_buffer_needs_update:
     jr nz, buffer_needs_update
     add ix, bc
 buffer_needs_update:
+    call f_acquire_semaphore
     call sound_loader_read_buffer
+    call f_release_semaphore
     ; restores registers
     pop iy
     pop ix
@@ -249,31 +219,31 @@ return_from_callback:
 ; IX = buffer pointer
 ; BC = bytes to read
 sound_loader_read_buffer:   
-    ld a, (IY + SOUND_CHANNEL_FILE_HANDLE)
+    ld a, (IY + SC_FILE_HANDLE)
 load_chunk:
     ; Input: IX = buffer pointer, BC = bytes to read, A = file handle
     call f_read
     ret z ; buffer complete. We did not reach EOF
 
     ; The buffer has not been completely filled (file reached EOF)
-    bit 7, (IY + SOUND_CHANNEL_QUEUED_FILE_HANDLE)
+    bit 7, (IY + SC_QUEUED_FILE_HANDLE)
     jr nz, check_loop_mode ; No queued file, check loop mode
     
     ; Queued file found, switch to it
     ; First close current handler
-    ld a, (IY + SOUND_CHANNEL_FILE_HANDLE)
+    ld a, (IY + SC_FILE_HANDLE)
     call f_close
 
-    ld a, (IY + SOUND_CHANNEL_QUEUED_FILE_HANDLE)
-    ld (IY + SOUND_CHANNEL_FILE_HANDLE), a
-    ld (IY + SOUND_CHANNEL_QUEUED_FILE_HANDLE), -1
+    ld a, (IY + SC_QUEUED_FILE_HANDLE)
+    ld (IY + SC_FILE_HANDLE), a
+    ld (IY + SC_QUEUED_FILE_HANDLE), -1
     jr load_chunk
 
 check_loop_mode:
-    bit 0, (IY + SOUND_CHANNEL_LOOP_MODE)
+    bit 0, (IY + SC_LOOP_MODE)
     jr z, nothing_more_to_read
 
-    ld a, (iy + SOUND_CHANNEL_FILE_HANDLE)
+    ld a, (iy + SC_FILE_HANDLE)
     // Rewind...
     call f_rewind
     jr sound_loader_read_buffer
@@ -289,6 +259,7 @@ nothing_more_to_read:
 ; ---------------------------------------------------------------------------
 
 _play_sound_file:
+    call f_acquire_semaphore
     push ix
     ld ix, 4
     add ix, sp
@@ -296,45 +267,46 @@ _play_sound_file:
     call get_channel_from_parameter
 
     ; Pauses the sound channel
-    ld (iy + SOUND_CHANNEL_PAUSED), 1 ; pauses the channel
+    ld (iy + SC_PAUSED), 1 ; pauses the channel
 
     ; Closes previous file if any
-    ld a, (iy + SOUND_CHANNEL_FILE_HANDLE)
+    ld a, (iy + SC_FILE_HANDLE)
     cp -1
     call nz, f_close ; Close previous file if any
 
     ld a, (ix + 3) ; loop parameter
-    ld (iy + SOUND_CHANNEL_LOOP_MODE), a
+    ld (iy + SC_LOOP_MODE), a
     ld hl, (ix + 1) ; filename parameter
 
     call f_open
     jr nc, file_exists
     ; There was an error opening the file
-    ld (iy + SOUND_CHANNEL_FILE_HANDLE), -1
+    ld (iy + SC_FILE_HANDLE), -1
     ld l,a
 
     pop iy
     pop ix
+    call f_release_semaphore
     ret
 
 
 file_exists:
-    ld (iy + SOUND_CHANNEL_FILE_HANDLE), a
+    ld (iy + SC_FILE_HANDLE), a
 
     ; Sets data page
     ld l, stereo_samples_buffer >> 16
     call _set_mmu_data_page
 
     ; Fills both buffers
-    ld ix, (iy + SOUND_CHANNEL_BUFFER_AREA)
+    ld ix, (iy + SC_BUFFER_AREA)
     ; sets the sample pointer to the start of the first buffer
-    ld (iy + SOUND_CHANNEL_CURSOR), ix
+    ld (iy + SC_CURSOR), ix
 
-    ld bc, (iy + SOUND_CHANNEL_BUFFER_AREA_SIZE)
+    ld bc, (iy + SC_BUFFER_AREA_SIZE)
     call sound_loader_read_buffer
 
     ; Enables the sound channel
-    ld (iy + SOUND_CHANNEL_PAUSED), 0 ; resumes the channel
+    ld (iy + SC_PAUSED), 0 ; resumes the channel
 
     ; Restores the currengt page in MMU 6
     call _restore_mmu_data_page
@@ -343,6 +315,9 @@ file_exists:
 
     pop iy
     pop ix
+
+    call f_release_semaphore
+
     ret
 
 ; ---------------------------------------------------------------------------
@@ -350,6 +325,7 @@ file_exists:
 ; ---------------------------------------------------------------------------
 
 _queue_sound_file:
+    call f_acquire_semaphore
     push ix
     ld ix, 4
     add ix, sp
@@ -357,12 +333,12 @@ _queue_sound_file:
     call get_channel_from_parameter
 
     ; Closes previous file if any
-    ld a, (iy + SOUND_CHANNEL_QUEUED_FILE_HANDLE)
+    ld a, (iy + SC_QUEUED_FILE_HANDLE)
     cp -1
     call nz, f_close ; Close previous file if any
     
     ld a, (ix + 3) ; loop parameter
-    ld (iy + SOUND_CHANNEL_LOOP_MODE), a
+    ld (iy + SC_LOOP_MODE), a
     ld hl, (ix + 1) ; filename parameter
     call f_open
 
@@ -370,10 +346,11 @@ _queue_sound_file:
     ; There was an error opening the file
     ld a, -1
 queue_file_exists:
-    ld (iy + SOUND_CHANNEL_QUEUED_FILE_HANDLE), a
+    ld (iy + SC_QUEUED_FILE_HANDLE), a
     ld l,a
     pop iy
     pop ix
+    call f_release_semaphore
     ret
 
 ; ---------------------------------------------------------------------------
@@ -411,10 +388,8 @@ f_rewind:
     ld ixl, 0   ; esx_seek_set
     ld bc, 0   ; bcde = offset 0
     ld de, 0
-    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_SEEK
-    call f_release_semaphore
     pop ix ; restore buffer position
     pop bc ; restore bytes to fill
 
@@ -429,10 +404,8 @@ f_close:
     call __trace_registers
     defb "c: \0"
 
-    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_CLOSE
-    call f_release_semaphore
 
     call __trace_registers
     defb "C: \0"
@@ -463,10 +436,8 @@ f_read:
     defb "r: \0"
 
     push bc
-    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_READ
-    call f_release_semaphore
     ; Output: HL = updated buffer pointer, BC and DE = bytes actually read
     push hl
     pop ix ; <-- updated buffer pointer
@@ -490,10 +461,8 @@ f_open:
     call __trace_registers
     defb "o: \0"
 
-    call f_acquire_semaphore
     rst __ESX_RST_SYS
     defb __ESX_F_OPEN
-    call f_release_semaphore
 
     call __trace_registers
     defb "O: \0"
@@ -528,52 +497,42 @@ SECTION data_user
 _esxdos_semaphore:
     defb 1 ; semaphore for ESXDOS calls
 
-defc _stereo_channel_paused = stereo_samples_channel + SOUND_CHANNEL_PAUSED
-defc stereo_samples_pointer = stereo_samples_channel + SOUND_CHANNEL_CURSOR
-defc _stereo_channel_callback = stereo_samples_channel + SOUND_CHANNEL_CALLBACK
 
-    ; SOUND_CHANNEL_PAUSED                DS.B 1       ; 1 = paused, 0 = playing
-    ; SOUND_CHANNEL_CURSOR                DS.W 1       ; current cursor in the buffer
-    ; SOUND_CHANNEL_FILE_HANDLE           DS.B 1       ; file handle associated to the channel
-    ; SOUND_CHANNEL_QUEUED_FILE_HANDLE    DS.B 1       ; queued file handle to be played when the current one ends
-    ; SOUND_CHANNEL_LOOP_MODE             DS.B 1       ; loop mode (0 = no loop, 1 = loop)
-    ; SOUND_CHANNEL_BUFFER_AREA           DS.W 1       ; buffer address (low part)
-    ; SOUND_CHANNEL_BUFFER_AREA_SIZE      DS.W 1       ; buffer size in bytes
-    ; SOUND_CHANNEL_CALLBACK              DS.W 1       ; callback function when the sound ends 
-    ; SOUND_CHANNEL_STRUCT_SIZE    
+; Sound channel data structure
+  DEFVARS 0               
+  {
+    SC_CURSOR                DS.W 1       ; current cursor in the buffer
+    SC_REMAINING_BUFFERS     DS.B 1       ; 2 = paused
+
+    SC_FILE_HANDLE           DS.B 1       ; file handle associated to the channel
+    SC_BUFFER_AREA           DS.B 1       ; buffer address (high byte)
+    SC_BUFFER_SIZE           DS.B 1       ; buffer size (high byte = size / 256)
+    SC_NEXT_BUFFER           DS.B 1       ; high part of next buffer address 
+    SC_STRUCT_SIZE    
+  } 
+
+defc stereo_samples_pointer = mono_samples_channel + SC_CURSOR
 
 stereo_samples_channel:
-    defb 1                                  ; paused by default
-    defw stereo_samples_buffer & 0xFFFF    ; current cursor in the buffer
-    defb -1                                 ; file handle being played
-    defb -1                                 ; queued file handle to be played when the current one ends
-    defb 0                                  ; loop mode (0 = no loop, 1 = loop)
-    defw stereo_samples_buffer & 0xFFFF    ; buffer address 
-    defw STEREO_BUFFER_SIZE * 2             ; buffer area size 
-    defw 0                                  ; callback function when the sound ends  
+    defw stereo_samples_buffer & 0xFFFF         ; current cursor in the buffer
+    defb 0                                      ; remaining buffers, paused by default
 
-defc _mono_channel_paused = mono_samples_channel + SOUND_CHANNEL_PAUSED   
-defc mono_samples_pointer = mono_samples_channel + SOUND_CHANNEL_CURSOR
-defc _mono_channel_callback = mono_samples_channel + SOUND_CHANNEL_CALLBACK
+    defb -1                                     ; file handle
+    defb (stereo_samples_buffer >> 8) & 0xFF    ; buffer address (high byte)
+    defb STEREO_BUFFER_SIZE >> 8                ; buffer size (high byte)
+    defb (stereo_samples_buffer >> 8) & 0xFF    ; next buffer address (high byte)
 
-defc trace_ula = 0x6000 + 20 * 40 + 20 ; Tilemap top left corner
+defc mono_samples_pointer = mono_samples_channel + SC_CURSOR
 
 mono_samples_channel:
-    defb 1                                  ; paused by default
-    defw mono_samples_buffer & 0xFFFF    ; current cursor in the buffer
-    defb -1                                 ; file handle being played
-    defb -1                                 ; queued file handle to be played when the current one ends
-    defb 0                                  ; loop mode (0 = no loop, 1 = loop)
-    defw mono_samples_buffer & 0xFFFF    ; buffer address 
-    defw MONO_BUFFER_SIZE * 2             ; buffer area size 
-    defw 0                                  ; callback function when the sound ends  
+    defw mono_samples_buffer & 0xFFFF           ; current cursor in the buffer
+    defb 0                                      ; remaining buffers, paused by default
 
+    defb -1                                     ; file handle 
+    defb (mono_samples_buffer >> 8) & 0xFF      ; buffer address (high byte)
+    defb MONO_BUFFER_SIZE >> 8                  ; buffer size (high byte)
+    defb (mono_samples_buffer >> 8) & 0xFF      ; next buffer address (high byte)
 
-channels_table:
-    defw stereo_samples_channel
-    defw stereo_samples_channel
-    defw stereo_samples_channel
-    defw mono_samples_channel
 
 SECTION sound_data
 
