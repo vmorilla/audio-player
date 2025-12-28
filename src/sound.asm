@@ -80,7 +80,15 @@ _play_sound_file:
     jr _play_sound_file_end
 
 _play_sound_file_exists:
+    ; Stores the file handle
     ld (iy + SC_FILE_HANDLE), a
+
+    ; Resets next buffer and cursor
+    xor a
+    ld (iy + SC_NEXT_BUFFER), a
+    ld (iy + SC_CURSOR), a
+    ld a, (iy + SC_BUFFER_AREA)
+    ld (iy + SC_CURSOR + 1), a
 
     ld l, BUFFERS_MMU_PAGE
     call _set_mmu_data_page
