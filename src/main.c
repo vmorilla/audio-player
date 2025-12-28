@@ -133,8 +133,8 @@ int main(void)
 
     while (1)
     {
-        // printf("\x16\x01\x01Rate: %u Hz      \n", sound_samples_played * 25);
-        // printf("Average: %u Hz        \n", average * 25);
+        printf("\x16\x01\x01Rate: %u Hz      \n", sound_samples_played * 25);
+        printf("Average: %u Hz        \n", average * 25);
         read_commands();
         n++;
         total += sound_samples_played;
