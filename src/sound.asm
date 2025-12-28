@@ -4,111 +4,14 @@ SECTION code_user
 INCLUDE "config_zxn_private.inc"
 INCLUDE "zxn_constants.h"
 
-PUBLIC mono_samples_pointer, stereo_samples_pointer, sound_interrupt_handler
-PUBLIC _play_sound_file, _queue_sound_file 
-PUBLIC STEREO_BUFFER_SIZE
+PUBLIC _play_sound_file 
 
-EXTERN set_mmu_data_page_di, restore_mmu_data_page_di, _set_mmu_data_page, _restore_mmu_data_page
-EXTERN __trace_registers
+EXTERN sound_interrupt_handler
+EXTERN stereo_samples_channel, mono_samples_channel
+EXTERN STEREO_BUFFER_SIZE, MONO_BUFFER_SIZE
+EXTERN SC_CURSOR, SC_REMAINING_BUFFERS, SOUND_EOF_MARKER
 
-defc STERO_BUFFER_SIZE_BITS = 10 ; 11 bits -> 2048 bytes stereo buffer, 10 bits -> 1024 bytes stereo buffer
-defc STEREO_BUFFER_SIZE = 2 ** STERO_BUFFER_SIZE_BITS
-defc STEREO_BUFFER_H_MASK = (STEREO_BUFFER_SIZE - 1) >> 8
-defc STEREO_BUFFER_H_OVERFLOW_BIT = STERO_BUFFER_SIZE_BITS - 8
-defc STEREO_DOUBLE_BUFFER_H_OVERFLOW_BIT = STEREO_BUFFER_H_OVERFLOW_BIT + 1
-
-defc MONO_BUFFER_SIZE_BITS = STERO_BUFFER_SIZE_BITS - 1 ; Mono buffer is half the size of stereo buffer
-defc MONO_BUFFER_SIZE = 2 ** MONO_BUFFER_SIZE_BITS
-defc MONO_BUFFER_H_MASK = (MONO_BUFFER_SIZE - 1) >> 8
-defc MONO_BUFFER_H_OVERFLOW_BIT = MONO_BUFFER_SIZE_BITS - 8
-defc MONO_DOUBLE_BUFFER_H_OVERFLOW_BIT = MONO_BUFFER_H_OVERFLOW_BIT + 1
-
-defc SOUND_EOF_MARKER = 0xFF
-
-
-sound_interrupt_handler:
-    push af
-    push hl
-
-    ld a, stereo_samples_buffer >> 16
-    call set_mmu_data_page_di
-
-    call process_stereo_sound_channel
-    call process_mono_sound_channel
-
-    call restore_mmu_data_page_di
-
-    pop hl
-    pop af
-    ei
-    reti
-
-process_stereo_sound_channel:
-    ; returns if buffers are empty
-    ld a, (stereo_samples_channel + SC_REMAINING_BUFFERS)
-    and a
-    ret z
-
-    ld hl, (stereo_samples_channel + SC_CURSOR)
-    ld a, (hl)
-    cp SOUND_EOF_MARKER         ; Check for end-of-buffer marker
-    jr nz, stereo_output_sample
-    
-    xor a
-    ld (stereo_samples_channel + SC_REMAINING_BUFFERS), a
-    ret
-
-stereo_output_sample:
-    nextreg REG_DAC_LEFT, a
-    inc hl
-    ld a, (hl)
-    nextreg REG_DAC_RIGHT, a
-    inc hl
-
-    res STEREO_DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
-    ld (stereo_samples_channel + SC_CURSOR), hl
-
-    ld a, h
-    and STEREO_BUFFER_H_MASK
-    or l
-    ret nz
-
-    ; End of buffer reached
-    ld hl, stereo_samples_channel + SC_REMAINING_BUFFERS
-    dec (hl)
-    ret
-
-process_mono_sound_channel:
-    ; returns if both buffers are empty
-    ld a, (mono_samples_channel + SC_REMAINING_BUFFERS)
-    and a
-    ret z
-
-    ld hl, (mono_samples_channel + SC_CURSOR)
-    ld a, (hl)
-    cp SOUND_EOF_MARKER         ; Check for end-of-buffer marker
-    jr nz, mono_output_sample
-    
-    xor a
-    ld (mono_samples_channel + SC_REMAINING_BUFFERS), a
-    ret
-
-mono_output_sample:
-    nextreg REG_DAC_MONO, a
-    inc hl
-
-    res MONO_DOUBLE_BUFFER_H_OVERFLOW_BIT, h ; This ensures that the pointer goes back to the start of the first buffer
-    ld (mono_samples_channel + SC_CURSOR), hl
-
-    ld a, h
-    and MONO_BUFFER_H_MASK
-    or l
-    ret nz
-
-    ; End of buffer reached
-    ld hl, mono_samples_channel + SC_REMAINING_BUFFERS
-    dec (hl)
-    ret
+EXTERN set_mmu_data_page_di, restore_mmu_data_page_di
 
 
 stereo_buffer_needs_update:
@@ -259,7 +162,6 @@ nothing_more_to_read:
 ; ---------------------------------------------------------------------------
 
 _play_sound_file:
-    call f_acquire_semaphore
     push ix
     ld ix, 4
     add ix, sp
@@ -379,10 +281,6 @@ get_channel_from_parameter:
     ; IX and BC are preserved
     ; ----------------------------------------------------------------------
 f_rewind:
-
-    call __trace_registers
-    defb "w: \0"
-
     push bc ; save current buffer position
     push ix ; save remaining bytes to fill
     ld ixl, 0   ; esx_seek_set
@@ -392,28 +290,20 @@ f_rewind:
     defb __ESX_F_SEEK
     pop ix ; restore buffer position
     pop bc ; restore bytes to fill
-
-    call __trace_registers
-    defb "W: \0"
-
     ret 
 
-f_close:
+    ; ----------------------------------------------------------------------
     ; A = file handle
-
-    call __trace_registers
-    defb "c: \0"
-
+    ; ----------------------------------------------------------------------
+f_close:
     rst __ESX_RST_SYS
     defb __ESX_F_CLOSE
-
-    call __trace_registers
-    defb "C: \0"
-
     ret
 
 
-    ; Input: 
+    ; ----------------------------------------------------------------------
+    ; Reads data from a file into a buffer
+    ;
     ; IX = buffer pointer
     ; BC = bytes to read
     ; A = file handle
@@ -432,8 +322,6 @@ f_read:
     ;   HL = pending bytes to read, 
     ;   BC and DE = bytes actually read
     ;   Z flag set if buffer completely filled
-    call __trace_registers
-    defb "r: \0"
 
     push bc
     rst __ESX_RST_SYS
@@ -445,10 +333,7 @@ f_read:
     sbc hl, bc
     ld a, l
     or h
-
-    call __trace_registers
-    defb "R: \0"
-
+    
     ret
 
     ; Opens a file
@@ -505,9 +390,9 @@ _esxdos_semaphore:
     SC_REMAINING_BUFFERS     DS.B 1       ; 2 = paused
 
     SC_FILE_HANDLE           DS.B 1       ; file handle associated to the channel
-    SC_BUFFER_AREA           DS.B 1       ; buffer address (high byte)
+    SC_BUFFER_AREA           DS.B 1       ; buffer area address (high byte)
     SC_BUFFER_SIZE           DS.B 1       ; buffer size (high byte = size / 256)
-    SC_NEXT_BUFFER           DS.B 1       ; high part of next buffer address 
+    SC_NEXT_BUFFER           DS.B 1       ; next buffer index 
     SC_STRUCT_SIZE    
   } 
 
@@ -518,9 +403,9 @@ stereo_samples_channel:
     defb 0                                      ; remaining buffers, paused by default
 
     defb -1                                     ; file handle
-    defb (stereo_samples_buffer >> 8) & 0xFF    ; buffer address (high byte)
+    defb (stereo_samples_buffer >> 8) & 0xFF    ; buffer area address (high byte)
     defb STEREO_BUFFER_SIZE >> 8                ; buffer size (high byte)
-    defb (stereo_samples_buffer >> 8) & 0xFF    ; next buffer address (high byte)
+    defb 0                                      ; next buffer index 
 
 defc mono_samples_pointer = mono_samples_channel + SC_CURSOR
 
@@ -529,21 +414,11 @@ mono_samples_channel:
     defb 0                                      ; remaining buffers, paused by default
 
     defb -1                                     ; file handle 
-    defb (mono_samples_buffer >> 8) & 0xFF      ; buffer address (high byte)
+    defb (mono_samples_buffer >> 8) & 0xFF      ; buffer area address (high byte)
     defb MONO_BUFFER_SIZE >> 8                  ; buffer size (high byte)
-    defb (mono_samples_buffer >> 8) & 0xFF      ; next buffer address (high byte)
+    defb 0                                      ; next buffer index
 
 
 SECTION sound_data
-
-stereo_samples_buffer: 
-left_channel_samples_buffer:
-    defs STEREO_BUFFER_SIZE, SOUND_EOF_MARKER
-
-right_channel_samples_buffer:
-    defs STEREO_BUFFER_SIZE, SOUND_EOF_MARKER
-
-mono_samples_buffer: 
-    defs STEREO_BUFFER_SIZE, SOUND_EOF_MARKER
 
 
