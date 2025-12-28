@@ -123,7 +123,7 @@ int main(void)
     show_instructions();
 
     hardware_interrupt_mode();
-    set_sound_samples_interrupt_rate(8); // 16 kHz
+    set_sound_samples_interrupt_rate(16); // 16 kHz
 
     // mono_channel_callback = post_scream;
 
@@ -135,6 +135,7 @@ int main(void)
     {
         printf("\x16\x01\x01Rate: %u Hz      \n", sound_samples_played * 25);
         printf("Average: %u Hz        \n", average * 25);
+
         read_commands();
         n++;
         total += sound_samples_played;
