@@ -16,7 +16,6 @@ samples_counter_interrupt_handler:
     ld de, (last_sample_pointer)
     ld hl, (stereo_samples_channel + SC_CURSOR)
     
-    ei
     ld (last_sample_pointer), hl
     and a
     sbc hl, de
@@ -29,6 +28,7 @@ no_carry:
     pop hl
     pop de
     pop af
+    ei
     reti
 
 SECTION data_user
