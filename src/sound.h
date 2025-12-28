@@ -6,40 +6,22 @@
 typedef enum
 {
     STEREO_CHANNEL,
+    MONO_CHANNEL,
     LEFT_CHANNEL,
-    RIGHT_CHANNEL,
-    MONO_CHANNEL
+    RIGHT_CHANNEL
 } SoundChannelId;
 
-// typedef struct SoundChannelStruct
-// {
-//     bool paused;                     //                DS.B 1       ; 1 = paused, 0 = playing
-//     volatile char *cursor;           //                DS.W 1       ; current cursor in the buffer
-//     int8_t file_handle;              //           DS.B 1       ; file handle associated to the channel
-//     int8_t queued_file_handle;       //    DS.B 1       ; queued file handle to be played when the current one ends
-//     bool loop_mode;                  //             DS.B 1       ; loop mode (0 = no loop, 1 = loop)
-//     const char *buffer_area;         //           DS.W 1       ; buffer address (low part)
-//     const uint16_t buffer_area_size; //      DS.W 1       ; buffer size in bytes
-//     void (*callback)(void);          //              DS.W 1       ; callback function when the sound ends
-// } SoundChannel;
+// Plays a sound file on the specified channel
+// Returns -1 if error, the file handle if OK
+int8_t play_sound_file(SoundChannelId channel, const char *filename);
 
-int8_t play_sound_file(SoundChannelId channel, const char *filename, bool loop);
-int8_t play_sound_file_callback(SoundChannelId channel, const char *filename, void (*callback)(void));
-
-int8_t queue_sound_file(SoundChannelId channel, const char *filename, bool loop);
-int8_t queue_sound_file_callback(SoundChannelId channel, const char *filename, void (*callback)(void));
-
-void sound_interrupt_handler(void);
+// Updates the buffer in the sound channels if needed. Should be called in the
+// application main loop
+void update_sound_channels(void);
 
 /**
  * Sets the interrupt rate for sound samples generation in kHz
  */
 void set_sound_samples_interrupt_rate(uint8_t freqKHz);
-
-extern bool volatile stereo_channel_paused;
-extern bool volatile mono_channel_paused;
-
-extern void (*volatile stereo_channel_callback)(void);
-extern void (*volatile mono_channel_callback)(void);
 
 #endif

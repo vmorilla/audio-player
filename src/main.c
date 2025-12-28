@@ -68,39 +68,43 @@ void show_instructions(void)
 
 void read_commands(void)
 {
-    int key = in_inkey();
-    if (key != 0)
+    static int last_key;
+
+    int new_key = in_inkey();
+
+    if (new_key != last_key)
     {
-        switch (key)
+        last_key = new_key;
+
+        switch (new_key)
         {
         case 'i':
             // puts("Playing intro & loop...\n");
-            play_sound_file(STEREO_CHANNEL, "music/stereo_channel.raw", false);
+            play_sound_file(STEREO_CHANNEL, "music/stereo_channel.raw");
             // queue_sound_file(STEREO_CHANNEL, "music/loop.raw", true);
             break;
 
         case 'q':
             // puts("Queuing outro...\n");
-            queue_sound_file(STEREO_CHANNEL, "music/outro.raw", false);
+            // queue_sound_file(STEREO_CHANNEL, "music/outro.raw");
             break;
 
         case 'o':
             // puts("Playing outro...\n");
-            play_sound_file(STEREO_CHANNEL, "music/outro.raw", false);
+            play_sound_file(STEREO_CHANNEL, "music/outro.raw");
             break;
 
         case 'p':
             // puts(stereo_channel_paused ? "Resume sound...\n" : "Pause sound...\n");
-            stereo_channel_paused = !stereo_channel_paused;
+            // stereo_channel_paused = !stereo_channel_paused;
             break;
 
         case 's':
             // puts("Mono channel...\n");
             // puts("\x16\x01\x15.               \n");
-            play_sound_file(MONO_CHANNEL, "music/scream.raw", false);
+            play_sound_file(MONO_CHANNEL, "music/scream.raw");
             break;
         }
-        in_wait_nokey();
     }
 }
 
@@ -140,5 +144,8 @@ int main(void)
             n = 0;
             total = 0;
         }
+
+        update_sound_channels();
+        intrinsic_halt();
     }
 }

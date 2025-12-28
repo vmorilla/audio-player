@@ -3,7 +3,7 @@ PUBLIC samples_counter_interrupt_handler
 PUBLIC _sound_samples_played
 
 
-EXTERN stereo_samples_pointer, STEREO_BUFFER_SIZE
+EXTERN stereo_samples_channel, SC_CURSOR, STEREO_BUFFER_SIZE
 
 SECTION code_user
 
@@ -14,7 +14,7 @@ samples_counter_interrupt_handler:
 
     ; calculate samples played by substracting the the last sample pointer from the current sample pointer
     ld de, (last_sample_pointer)
-    ld hl, (stereo_samples_pointer)
+    ld hl, (stereo_samples_channel + SC_CURSOR)
     
     ei
     ld (last_sample_pointer), hl
