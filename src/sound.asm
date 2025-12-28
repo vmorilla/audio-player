@@ -94,6 +94,7 @@ _play_sound_file_exists:
     call _set_mmu_data_page
 
     call read_buffer
+    call read_buffer
 
     call _restore_mmu_data_page
 
@@ -112,15 +113,17 @@ _play_sound_file_end:
 ; ---------------------------------------------------------------------------
 
 _update_sound_channels:
+    push ix
     push iy
 
     ld iy, stereo_samples_channel
     call _update_invidiual_channel
 
     ld iy, mono_samples_channel
-    call z, _update_invidiual_channel
+    call _update_invidiual_channel
 
     pop iy
+    pop ix
     ret
 
 ; Returns with Z flag set if the channel was not updated

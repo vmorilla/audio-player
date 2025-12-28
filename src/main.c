@@ -125,8 +125,6 @@ int main(void)
     hardware_interrupt_mode();
     set_sound_samples_interrupt_rate(16); // 16 kHz
 
-    // mono_channel_callback = post_scream;
-
     uint8_t n = 0;
     uint16_t total = 0;
     uint16_t average = 0;
