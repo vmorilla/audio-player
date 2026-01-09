@@ -8,6 +8,7 @@
 #include <arch/zxn.h>
 
 #include "interrupts.h"
+#include "memory.h"
 #include "samples_counter.h"
 #include "sound.h"
 
